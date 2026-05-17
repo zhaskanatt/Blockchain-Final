@@ -35,17 +35,9 @@ contract Deploy is Script {
         address[] memory executors = new address[](1);
         executors[0] = address(0);
 
-        TimelockController timelock = new TimelockController(
-            TIMELOCK_DELAY,
-            proposers,
-            executors,
-            deployer
-        );
+        TimelockController timelock = new TimelockController(TIMELOCK_DELAY, proposers, executors, deployer);
 
-        PredictionGovernor governor = new PredictionGovernor(
-            IVotes(address(govToken)),
-            timelock
-        );
+        PredictionGovernor governor = new PredictionGovernor(IVotes(address(govToken)), timelock);
 
         Treasury treasury = new Treasury(address(timelock));
 
@@ -56,11 +48,7 @@ contract Deploy is Script {
         PredictionMarketV1 implementation = new PredictionMarketV1();
 
         MarketFactory factory = new MarketFactory(
-            address(implementation),
-            address(collateral),
-            address(outcomeToken),
-            address(feeVault),
-            deployer
+            address(implementation), address(collateral), address(outcomeToken), address(feeVault), deployer
         );
 
         outcomeToken.grantRole(outcomeToken.MINTER_ROLE(), address(factory));
@@ -70,11 +58,7 @@ contract Deploy is Script {
         OracleResolver oracle;
 
         if (priceFeed != address(0)) {
-            oracle = new OracleResolver(
-                priceFeed,
-                STALENESS_THRESHOLD,
-                address(timelock)
-            );
+            oracle = new OracleResolver(priceFeed, STALENESS_THRESHOLD, address(timelock));
         }
 
         bytes32 proposerRole = timelock.PROPOSER_ROLE();

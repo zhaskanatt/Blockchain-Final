@@ -99,10 +99,7 @@ contract GovernanceTokenTest is Test {
     function test_votingPowerUpdatesOnTransfer() public {
         vm.startPrank(owner);
         token.delegate(owner);
-        require(
-            token.transfer(alice, 1_000e18),
-            "Transfer failed"
-        );
+        require(token.transfer(alice, 1_000e18), "Transfer failed");
         vm.stopPrank();
 
         // owner delegated to self; transferring tokens reduces their votes
@@ -209,10 +206,7 @@ contract GovernanceTokenTest is Test {
         uint256 supplyBefore = token.totalSupply();
 
         vm.prank(owner);
-        require(
-            token.transfer(to, amount),
-            "Transfer failed"
-        );
+        require(token.transfer(to, amount), "Transfer failed");
 
         assertEq(token.totalSupply(), supplyBefore);
     }
