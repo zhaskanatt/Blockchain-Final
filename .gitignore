@@ -1,0 +1,19 @@
+# Foundry
+out/
+cache/
+broadcast/
+.env
+
+# Dependencies (tracked via lib/ submodules — keep lib itself)
+# but ignore nested test/script bloat
+lib/**/node_modules/
+
+# Coverage and reports
+lcov.info
+coverage/
+
+# Gas snapshots (regenerated)
+.gas-snapshot
+
+# Deployment artifacts
+deployments/
