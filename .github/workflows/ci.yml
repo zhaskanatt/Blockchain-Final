@@ -90,35 +90,4 @@ jobs:
 
       - name: Build subgraph
         run: npx graph build
-        working-directory: subgraph  subgraph:
-    name: Subgraph
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-
-      - name: Build contracts for ABI artifacts
-        run: forge build
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: subgraph/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-        working-directory: subgraph
-
-      - name: Codegen
-        run: npx graph codegen
-        working-directory: subgraph
-
-      - name: Build subgraph
-        run: npx graph build
         working-directory: subgraph
