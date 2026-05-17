@@ -14,29 +14,28 @@ import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.so
 ///
 /// NOT FOR PRODUCTION USE.
 contract MockV3Aggregator is AggregatorV3Interface {
-
-    uint8   public override decimals;
-    string  public override description;
+    uint8 public override decimals;
+    string public override description;
     uint256 public override version = 1;
 
     // Current round data
-    uint80  public currentRoundId;
-    int256  public latestAnswer;
+    uint80 public currentRoundId;
+    int256 public latestAnswer;
     uint256 public latestStartedAt;
     uint256 public latestUpdatedAt;
-    uint80  public latestAnsweredInRound;
+    uint80 public latestAnsweredInRound;
 
     // Historical rounds (roundId → data)
     struct RoundData {
-        int256  answer;
+        int256 answer;
         uint256 startedAt;
         uint256 updatedAt;
-        uint80  answeredInRound;
+        uint80 answeredInRound;
     }
     mapping(uint80 => RoundData) private _rounds;
 
     constructor(uint8 decimals_, int256 initialAnswer) {
-        decimals    = decimals_;
+        decimals = decimals_;
         description = "Mock / USD";
         _updateRound(initialAnswer, block.timestamp);
     }
@@ -56,9 +55,9 @@ contract MockV3Aggregator is AggregatorV3Interface {
     /// @notice Simulate an incomplete round (answeredInRound < roundId).
     function setIncompleteRound(int256 answer) external {
         currentRoundId++;
-        latestAnswer       = answer;
-        latestStartedAt    = block.timestamp;
-        latestUpdatedAt    = block.timestamp;
+        latestAnswer = answer;
+        latestStartedAt = block.timestamp;
+        latestUpdatedAt = block.timestamp;
         // answeredInRound intentionally behind roundId → incomplete
         latestAnsweredInRound = currentRoundId - 1;
         _rounds[currentRoundId] = RoundData(answer, block.timestamp, block.timestamp, currentRoundId - 1);
@@ -76,34 +75,16 @@ contract MockV3Aggregator is AggregatorV3Interface {
         external
         view
         override
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80  answeredInRound
-        )
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
-        return (
-            currentRoundId,
-            latestAnswer,
-            latestStartedAt,
-            latestUpdatedAt,
-            latestAnsweredInRound
-        );
+        return (currentRoundId, latestAnswer, latestStartedAt, latestUpdatedAt, latestAnsweredInRound);
     }
 
     function getRoundData(uint80 _roundId)
         external
         view
         override
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80  answeredInRound
-        )
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
         RoundData memory r = _rounds[_roundId];
         return (_roundId, r.answer, r.startedAt, r.updatedAt, r.answeredInRound);
@@ -113,9 +94,9 @@ contract MockV3Aggregator is AggregatorV3Interface {
 
     function _updateRound(int256 answer, uint256 updatedAt_) internal {
         currentRoundId++;
-        latestAnswer          = answer;
-        latestStartedAt       = updatedAt_;
-        latestUpdatedAt       = updatedAt_;
+        latestAnswer = answer;
+        latestStartedAt = updatedAt_;
+        latestUpdatedAt = updatedAt_;
         latestAnsweredInRound = currentRoundId;
         _rounds[currentRoundId] = RoundData(answer, updatedAt_, updatedAt_, currentRoundId);
     }

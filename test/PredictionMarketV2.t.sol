@@ -36,23 +36,22 @@ import "../src/mocks/MockERC20.sol";
 /// Therefore zero storage collisions between V1 and V2.
 
 contract PredictionMarketV2Test is Test {
-
     // ── Contracts ─────────────────────────────────────────────────────────────
 
-    ERC1967Proxy       internal proxy;
+    ERC1967Proxy internal proxy;
     PredictionMarketV1 internal v1;
     PredictionMarketV2 internal v2;
 
-    MockERC20          internal usdc;
-    OutcomeShareToken  internal shareToken;
-    FeeVault           internal vault;
+    MockERC20 internal usdc;
+    OutcomeShareToken internal shareToken;
+    FeeVault internal vault;
 
-    address internal owner  = makeAddr("owner");
-    address internal alice  = makeAddr("alice");
+    address internal owner = makeAddr("owner");
+    address internal alice = makeAddr("alice");
     address internal trader = makeAddr("trader");
 
-    uint256 internal constant SEED  = 100_000e6;
-    uint256 internal constant END   = 7 days;
+    uint256 internal constant SEED = 100_000e6;
+    uint256 internal constant END = 7 days;
     uint256 internal mktId;
 
     // ── Setup: deploy V1 proxy and seed a market ──────────────────────────────
@@ -68,12 +67,10 @@ contract PredictionMarketV2Test is Test {
 
         // Deploy V1 impl + proxy
         PredictionMarketV1 v1Impl = new PredictionMarketV1();
-        bytes memory initData = abi.encodeCall(
-            PredictionMarketV1.initialize,
-            (address(usdc), address(shareToken), address(vault), owner)
-        );
+        bytes memory initData =
+            abi.encodeCall(PredictionMarketV1.initialize, (address(usdc), address(shareToken), address(vault), owner));
         proxy = new ERC1967Proxy(address(v1Impl), initData);
-        v1    = PredictionMarketV1(address(proxy));
+        v1 = PredictionMarketV1(address(proxy));
 
         // Roles + funding
         vm.startPrank(owner);
@@ -81,12 +78,15 @@ contract PredictionMarketV2Test is Test {
         vault.setFeeCollector(address(proxy));
         vm.stopPrank();
 
-        usdc.mint(owner,  10_000_000e6);
-        usdc.mint(alice,  10_000_000e6);
+        usdc.mint(owner, 10_000_000e6);
+        usdc.mint(alice, 10_000_000e6);
         usdc.mint(trader, 10_000_000e6);
-        vm.prank(owner);  usdc.approve(address(proxy), type(uint256).max);
-        vm.prank(alice);  usdc.approve(address(proxy), type(uint256).max);
-        vm.prank(trader); usdc.approve(address(proxy), type(uint256).max);
+        vm.prank(owner);
+        usdc.approve(address(proxy), type(uint256).max);
+        vm.prank(alice);
+        usdc.approve(address(proxy), type(uint256).max);
+        vm.prank(trader);
+        usdc.approve(address(proxy), type(uint256).max);
 
         // Create a market and seed it
         vm.startPrank(owner);
@@ -152,7 +152,7 @@ contract PredictionMarketV2Test is Test {
 
         (, uint256 yesAfter, uint256 noAfter,,,,) = v2.markets(mktId);
         assertEq(yesAfter, yesBefore);
-        assertEq(noAfter,  noBefore);
+        assertEq(noAfter, noBefore);
     }
 
     function test_upgrade_preservesLPBalances() public {

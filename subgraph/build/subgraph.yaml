@@ -1,0 +1,72 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: schema.graphql
+dataSources:
+  - kind: ethereum
+    name: MarketFactory
+    network: base-sepolia
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: MarketFactory
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Market
+        - Create2Market
+      abis:
+        - name: MarketFactory
+          file: MarketFactory\MarketFactory.json
+      eventHandlers:
+        - event: MarketDeployedCreate(indexed address,indexed uint256)
+          handler: handleMarketDeployedCreate
+        - event: MarketDeployedCreate2(indexed address,indexed bytes32,indexed uint256)
+          handler: handleMarketDeployedCreate2
+      file: MarketFactory\MarketFactory.wasm
+  - kind: ethereum
+    name: PredictionGovernor
+    network: base-sepolia
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: PredictionGovernor
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Proposal
+        - Vote
+      abis:
+        - name: PredictionGovernor
+          file: PredictionGovernor\PredictionGovernor.json
+      eventHandlers:
+        - event: ProposalCreated(uint256,address,address[],uint256[],string[],bytes[],uint256,uint256,string)
+          handler: handleProposalCreated
+        - event: VoteCast(indexed address,uint256,uint8,uint256,string)
+          handler: handleVoteCast
+      file: MarketFactory\MarketFactory.wasm
+  - kind: ethereum
+    name: FeeVault
+    network: base-sepolia
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: FeeVault
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - VaultFee
+      abis:
+        - name: FeeVault
+          file: FeeVault\FeeVault.json
+      eventHandlers:
+        - event: FeesReceived(indexed address,uint256)
+          handler: handleFeesReceived
+      file: MarketFactory\MarketFactory.wasm

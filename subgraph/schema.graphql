@@ -1,0 +1,43 @@
+type Market @entity(immutable: false) {
+  id: ID!
+  marketAddress: Bytes!
+  index: BigInt!
+  createdAtBlock: BigInt!
+  createdAtTimestamp: BigInt!
+}
+
+type Create2Market @entity(immutable: false) {
+  id: ID!
+  marketAddress: Bytes!
+  salt: Bytes!
+  index: BigInt!
+  createdAtBlock: BigInt!
+  createdAtTimestamp: BigInt!
+}
+
+type Proposal @entity(immutable: false) {
+  id: ID!
+  proposer: Bytes!
+  description: String!
+  createdAtBlock: BigInt!
+  createdAtTimestamp: BigInt!
+}
+
+type Vote @entity(immutable: false) {
+  id: ID!
+  proposalId: BigInt!
+  voter: Bytes!
+  support: Int!
+  weight: BigInt!
+  reason: String
+  createdAtBlock: BigInt!
+  createdAtTimestamp: BigInt!
+}
+
+type VaultFee @entity(immutable: false) {
+  id: ID!
+  from: Bytes!
+  assets: BigInt!
+  createdAtBlock: BigInt!
+  createdAtTimestamp: BigInt!
+}

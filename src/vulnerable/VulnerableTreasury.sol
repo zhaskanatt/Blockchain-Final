@@ -33,7 +33,6 @@ pragma solidity ^0.8.24;
 ///   unless the owner explicitly delegates to it.
 
 contract VulnerableTreasury {
-
     address public admin;
     uint256 public totalWithdrawn;
 

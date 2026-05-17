@@ -22,7 +22,6 @@ import "../vault/FeeVault.sol";
 /// PredictionMarketV1 implementation, then wire up OutcomeShareToken and FeeVault.
 
 contract MarketFactory is Ownable {
-
     // ── Immutable infrastructure ──────────────────────────────────────────────
 
     /// @notice The singleton V1 implementation contract all proxies point at.
@@ -45,15 +44,8 @@ contract MarketFactory is Ownable {
 
     // ── Events ────────────────────────────────────────────────────────────────
 
-    event MarketDeployedCreate(
-        address indexed market,
-        uint256 indexed index
-    );
-    event MarketDeployedCreate2(
-        address indexed market,
-        bytes32 indexed salt,
-        uint256 indexed index
-    );
+    event MarketDeployedCreate(address indexed market, uint256 indexed index);
+    event MarketDeployedCreate2(address indexed market, bytes32 indexed salt, uint256 indexed index);
 
     // ── Errors ────────────────────────────────────────────────────────────────
 
@@ -69,15 +61,15 @@ contract MarketFactory is Ownable {
         address feeVault_,
         address initialOwner_
     ) Ownable(initialOwner_) {
-        if (implementation_ == address(0) ||
-            collateral_      == address(0) ||
-            shareToken_      == address(0) ||
-            feeVault_        == address(0)) revert ZeroAddress();
+        if (
+            implementation_ == address(0) || collateral_ == address(0) || shareToken_ == address(0)
+                || feeVault_ == address(0)
+        ) revert ZeroAddress();
 
         implementation = implementation_;
-        collateral     = collateral_;
-        shareToken     = shareToken_;
-        feeVault       = feeVault_;
+        collateral = collateral_;
+        shareToken = shareToken_;
+        feeVault = feeVault_;
     }
 
     // ── CREATE deployment ─────────────────────────────────────────────────────
@@ -85,11 +77,7 @@ contract MarketFactory is Ownable {
     /// @notice Deploy a new market proxy using the EVM CREATE opcode.
     ///         Address is non-deterministic (depends on factory nonce).
     /// @return market Address of the newly deployed proxy.
-    function deployWithCreate(address marketOwner)
-        external
-        onlyOwner
-        returns (address market)
-    {
+    function deployWithCreate(address marketOwner) external onlyOwner returns (address market) {
         bytes memory initData = _buildInitData(marketOwner);
 
         // `new ERC1967Proxy(...)` compiles to a CREATE opcode
@@ -107,11 +95,7 @@ contract MarketFactory is Ownable {
     /// @param  salt        Arbitrary 32-byte value chosen by the caller.
     /// @param  marketOwner Owner of the deployed market.
     /// @return market      Address of the newly deployed proxy.
-    function deployWithCreate2(bytes32 salt, address marketOwner)
-        external
-        onlyOwner
-        returns (address market)
-    {
+    function deployWithCreate2(bytes32 salt, address marketOwner) external onlyOwner returns (address market) {
         if (create2Market[salt] != address(0)) revert SaltAlreadyUsed(salt);
 
         bytes memory initData = _buildInitData(marketOwner);
@@ -131,24 +115,13 @@ contract MarketFactory is Ownable {
     /// @param  salt        The same salt that will be passed to deployWithCreate2.
     /// @param  marketOwner Owner that will be passed to the initializer.
     /// @return predicted   The deterministic proxy address.
-    function predictCreate2Address(bytes32 salt, address marketOwner)
-        external
-        view
-        returns (address predicted)
-    {
-        bytes memory initData  = _buildInitData(marketOwner);
-        bytes memory proxyCode = abi.encodePacked(
-            type(ERC1967Proxy).creationCode,
-            abi.encode(implementation, initData)
-        );
+    function predictCreate2Address(bytes32 salt, address marketOwner) external view returns (address predicted) {
+        bytes memory initData = _buildInitData(marketOwner);
+        bytes memory proxyCode = abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(implementation, initData));
         bytes32 initcodeHash = keccak256(proxyCode);
 
-        predicted = address(uint160(uint256(keccak256(abi.encodePacked(
-            bytes1(0xff),
-            address(this),
-            salt,
-            initcodeHash
-        )))));
+        predicted =
+            address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, initcodeHash)))));
     }
 
     // ── View helpers ──────────────────────────────────────────────────────────
@@ -159,15 +132,8 @@ contract MarketFactory is Ownable {
 
     // ── Internal ──────────────────────────────────────────────────────────────
 
-    function _buildInitData(address marketOwner)
-        internal
-        view
-        returns (bytes memory)
-    {
-        return abi.encodeCall(
-            PredictionMarketV1.initialize,
-            (collateral, shareToken, feeVault, marketOwner)
-        );
+    function _buildInitData(address marketOwner) internal view returns (bytes memory) {
+        return abi.encodeCall(PredictionMarketV1.initialize, (collateral, shareToken, feeVault, marketOwner));
     }
 
     function _register(address market) internal {

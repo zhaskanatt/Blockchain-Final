@@ -29,8 +29,9 @@ contract ReentrancyAttackerOnSecure {
         // Attempt re-entry — this MUST revert on the secure contract
         if (address(pool).balance > 0) {
             try pool.claim() {
-                // Should never reach here
-            } catch {
+            // Should never reach here
+            }
+                catch {
                 // Expected: revert due to nonReentrant or zero balance
             }
         }
@@ -42,22 +43,22 @@ contract ReentrancyAttackerOnSecure {
 }
 
 contract ReentrancyMitigationTest is Test {
-    SecureRewardPool         internal pool;
+    SecureRewardPool internal pool;
     ReentrancyAttackerOnSecure internal attacker;
 
     address internal alice = makeAddr("alice");
-    address internal bob   = makeAddr("bob");
+    address internal bob = makeAddr("bob");
 
-    uint256 internal constant POOL_SEED     = 10 ether;
-    uint256 internal constant ATTACK_AMOUNT =  1 ether;
+    uint256 internal constant POOL_SEED = 10 ether;
+    uint256 internal constant ATTACK_AMOUNT = 1 ether;
 
     function setUp() public {
-        pool     = new SecureRewardPool();
+        pool = new SecureRewardPool();
         attacker = new ReentrancyAttackerOnSecure(pool);
 
         // Seed the pool with legitimate users
         vm.deal(alice, POOL_SEED / 2);
-        vm.deal(bob,   POOL_SEED / 2);
+        vm.deal(bob, POOL_SEED / 2);
 
         vm.prank(alice);
         pool.deposit{value: POOL_SEED / 2}();
@@ -79,21 +80,19 @@ contract ReentrancyMitigationTest is Test {
 
         attacker.attack{value: ATTACK_AMOUNT}();
 
-        uint256 poolAfter     = pool.poolBalance();
+        uint256 poolAfter = pool.poolBalance();
         uint256 attackerAfter = address(attacker).balance;
 
-        emit log_named_uint("Pool balance before (ETH wei)",    poolBefore);
-        emit log_named_uint("Pool balance after  (ETH wei)",    poolAfter);
+        emit log_named_uint("Pool balance before (ETH wei)", poolBefore);
+        emit log_named_uint("Pool balance after  (ETH wei)", poolAfter);
         emit log_named_uint("Attacker balance after (ETH wei)", attackerAfter);
-        emit log_named_uint("Re-entry attempts",                 attacker.reentrancyAttempts());
+        emit log_named_uint("Re-entry attempts", attacker.reentrancyAttempts());
 
         // Secure: deposit + claim cancel out — pool is unchanged
-        assertEq(poolAfter, poolBefore,
-                 "mitigation: pool balance must be unchanged by a failed attack");
+        assertEq(poolAfter, poolBefore, "mitigation: pool balance must be unchanged by a failed attack");
 
         // Attacker recovered exactly what the test sent in — zero profit
-        assertEq(attackerAfter, ATTACK_AMOUNT,
-                 "mitigation: attacker ends with only what was sent in, no extra profit");
+        assertEq(attackerAfter, ATTACK_AMOUNT, "mitigation: attacker ends with only what was sent in, no extra profit");
     }
 
     /// @notice Legitimate users can still claim after a failed attack attempt.
@@ -106,10 +105,8 @@ contract ReentrancyMitigationTest is Test {
         vm.prank(alice);
         pool.claim();
 
-        assertEq(alice.balance - aliceBalBefore, POOL_SEED / 2,
-                 "mitigation: alice must receive her full reward");
-        assertEq(pool.rewards(alice), 0,
-                 "mitigation: alice reward zeroed after claim");
+        assertEq(alice.balance - aliceBalBefore, POOL_SEED / 2, "mitigation: alice must receive her full reward");
+        assertEq(pool.rewards(alice), 0, "mitigation: alice reward zeroed after claim");
     }
 
     /// @notice Direct re-entry attempt on SecureRewardPool reverts.
@@ -140,7 +137,7 @@ contract ReentrancyMitigationTest is Test {
         pool.claim();
 
         assertEq(pool.rewards(freshUser), 0, "CEI: balance must be zeroed after claim");
-        assertEq(freshUser.balance, 1 ether,  "CEI: user must receive their ETH back");
+        assertEq(freshUser.balance, 1 ether, "CEI: user must receive their ETH back");
     }
 
     // ── Fuzz: attacker never extracts more than deposited ────────────────────
@@ -154,23 +151,28 @@ contract ReentrancyMitigationTest is Test {
         attacker.attack{value: amount}();
 
         // Pool must be unchanged: deposit and legitimate claim cancel out
-        assertEq(pool.poolBalance(), poolBefore,
-                 "fuzz mitigation: pool balance must not decrease from attack");
+        assertEq(pool.poolBalance(), poolBefore, "fuzz mitigation: pool balance must not decrease from attack");
 
         // Attacker ends with exactly the amount sent in — zero extra profit
-        assertEq(address(attacker).balance, amount,
-                 "fuzz mitigation: attacker recovers deposit but gains nothing extra");
+        assertEq(
+            address(attacker).balance, amount, "fuzz mitigation: attacker recovers deposit but gains nothing extra"
+        );
     }
 }
 
 /// @dev Helper: tries to re-enter claim() from receive().
 contract ReentrantCaller {
     SecureRewardPool pool;
-    constructor(SecureRewardPool p) { pool = p; }
+
+    constructor(SecureRewardPool p) {
+        pool = p;
+    }
+
     function attack() external payable {
         pool.deposit{value: msg.value}();
         pool.claim();
     }
+
     receive() external payable {
         pool.claim(); // must revert
     }
@@ -183,7 +185,7 @@ contract ReentrantCaller {
 /// @notice Same phishing contract logic, now targeting SecureTreasury.
 contract PhishingContractOnSecure {
     SecureTreasury public treasury;
-    address        public attacker;
+    address public attacker;
 
     constructor(SecureTreasury treasury_, address attacker_) {
         treasury = treasury_;
@@ -198,10 +200,10 @@ contract PhishingContractOnSecure {
 }
 
 contract AccessControlMitigationTest is Test {
-    SecureTreasury             internal treasury;
-    PhishingContractOnSecure   internal phishing;
+    SecureTreasury internal treasury;
+    PhishingContractOnSecure internal phishing;
 
-    address internal admin       = makeAddr("admin");
+    address internal admin = makeAddr("admin");
     address internal attackerEOA = makeAddr("attackerEOA");
 
     uint256 internal constant TREASURY_BALANCE = 5 ether;
@@ -232,10 +234,8 @@ contract AccessControlMitigationTest is Test {
         phishing.claimRewards();
 
         // Treasury untouched
-        assertEq(address(treasury).balance, treasuryBefore,
-                 "mitigation: treasury must not lose funds");
-        assertEq(attackerEOA.balance, 0,
-                 "mitigation: attacker must receive nothing");
+        assertEq(address(treasury).balance, treasuryBefore, "mitigation: treasury must not lose funds");
+        assertEq(attackerEOA.balance, 0, "mitigation: attacker must receive nothing");
     }
 
     /// @notice Direct call from admin (msg.sender == owner) still works.
@@ -245,8 +245,7 @@ contract AccessControlMitigationTest is Test {
         vm.prank(admin);
         treasury.withdraw(payable(admin), 1 ether);
 
-        assertEq(admin.balance - adminBefore, 1 ether,
-                 "mitigation: legitimate owner withdrawal must succeed");
+        assertEq(admin.balance - adminBefore, 1 ether, "mitigation: legitimate owner withdrawal must succeed");
         assertEq(address(treasury).balance, TREASURY_BALANCE - 1 ether);
     }
 
@@ -281,8 +280,7 @@ contract AccessControlMitigationTest is Test {
             try p.claimRewards() {} catch {}
         }
 
-        assertEq(address(treasury).balance, balanceBefore,
-                 "mitigation: repeated phishing must not change balance");
+        assertEq(address(treasury).balance, balanceBefore, "mitigation: repeated phishing must not change balance");
     }
 
     // ── Fuzz: any non-owner caller is always rejected ─────────────────────────

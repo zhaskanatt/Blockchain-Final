@@ -23,7 +23,6 @@ import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.so
 ///   • stalenessThreshold is configurable so it can tighten over time without redeployment.
 
 contract OracleResolver is Ownable {
-
     // ── Configuration ─────────────────────────────────────────────────────────
 
     AggregatorV3Interface public feed;
@@ -59,13 +58,9 @@ contract OracleResolver is Ownable {
     /// @param feed_               Chainlink AggregatorV3 address.
     /// @param stalenessThreshold_ Maximum price age in seconds.
     /// @param initialOwner_       Owner (Timelock in production).
-    constructor(
-        address feed_,
-        uint256 stalenessThreshold_,
-        address initialOwner_
-    ) Ownable(initialOwner_) {
+    constructor(address feed_, uint256 stalenessThreshold_, address initialOwner_) Ownable(initialOwner_) {
         if (feed_ == address(0) || stalenessThreshold_ == 0) revert InvalidConfiguration();
-        feed               = AggregatorV3Interface(feed_);
+        feed = AggregatorV3Interface(feed_);
         stalenessThreshold = stalenessThreshold_;
     }
 
@@ -75,13 +70,7 @@ contract OracleResolver is Ownable {
     /// @return price   Latest answer (feed's native precision, e.g. 8 decimals for USD pairs).
     /// @return updatedAt Unix timestamp of the last feed update.
     function getPrice() external view returns (int256 price, uint256 updatedAt) {
-        (
-            uint80 roundId,
-            int256 answer,
-            ,
-            uint256 _updatedAt,
-            uint80 answeredInRound
-        ) = feed.latestRoundData();
+        (uint80 roundId, int256 answer,, uint256 _updatedAt, uint80 answeredInRound) = feed.latestRoundData();
 
         // Validation 1: answer must be positive
         if (answer <= 0) revert InvalidPrice(answer);
@@ -106,15 +95,24 @@ contract OracleResolver is Ownable {
     /// @return price18 Latest answer normalised to 1e18 precision.
     function getPriceScaled18() external view returns (uint256 price18) {
         (int256 raw,) = this.getPrice();
+
+        require(raw >= 0, "Negative price");
+
         uint8 dec = feed.decimals();
+
         // Upscale from feed decimals to 18
         price18 = uint256(raw) * (10 ** (18 - dec));
     }
 
     // ── Feed metadata helpers (view, no validation needed) ───────────────────
 
-    function feedDecimals()    external view returns (uint8)        { return feed.decimals(); }
-    function feedDescription() external view returns (string memory){ return feed.description(); }
+    function feedDecimals() external view returns (uint8) {
+        return feed.decimals();
+    }
+
+    function feedDescription() external view returns (string memory) {
+        return feed.description();
+    }
 
     // ── Admin ─────────────────────────────────────────────────────────────────
 

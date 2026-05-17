@@ -26,7 +26,6 @@ import "./PredictionMarketV1.sol";
 ///     `forge inspect PredictionMarketV2 storage` to verify slot numbers.
 
 contract PredictionMarketV2 is PredictionMarketV1 {
-
     // ── New V2 state (appended after V1 slot 7) ───────────────────────────────
 
     /// @notice Maximum swap expressed in basis points of the smaller reserve.
@@ -76,20 +75,18 @@ contract PredictionMarketV2 is PredictionMarketV1 {
 
     // ── Overridden swap with V2 guards ────────────────────────────────────────
 
-    function swap(
-        uint256 marketId,
-        bool    buyYes,
-        uint256 amountIn,
-        uint256 minAmountOut
-    ) external override nonReentrant returns (uint256 amountOut) {
+    function swap(uint256 marketId, bool buyYes, uint256 amountIn, uint256 minAmountOut)
+        external
+        override
+        nonReentrant
+        returns (uint256 amountOut)
+    {
         if (pausedMarkets[marketId]) revert MarketPausedError(marketId);
 
         // Enforce max swap size if configured
         if (maxSwapBps > 0) {
             Market storage mkt = markets[marketId];
-            uint256 smallerReserve = mkt.yesReserve < mkt.noReserve
-                ? mkt.yesReserve
-                : mkt.noReserve;
+            uint256 smallerReserve = mkt.yesReserve < mkt.noReserve ? mkt.yesReserve : mkt.noReserve;
             uint256 maxAllowed = (smallerReserve * maxSwapBps) / 10_000;
             if (amountIn > maxAllowed) revert SwapExceedsMaxSize(amountIn, maxAllowed);
         }

@@ -6,16 +6,15 @@ import "../src/oracle/OracleResolver.sol";
 import "../src/mocks/MockV3Aggregator.sol";
 
 contract OracleResolverTest is Test {
-
-    OracleResolver   internal oracle;
+    OracleResolver internal oracle;
     MockV3Aggregator internal mock;
 
-    address internal owner   = makeAddr("owner");
-    address internal alice   = makeAddr("alice");
+    address internal owner = makeAddr("owner");
+    address internal alice = makeAddr("alice");
 
-    uint8   internal constant DECIMALS   = 8;
-    int256  internal constant INIT_PRICE = 2_600e8;    // $2 600 in 8-decimal Chainlink units
-    uint256 internal constant THRESHOLD  = 3_600;      // 1 hour staleness window
+    uint8 internal constant DECIMALS = 8;
+    int256 internal constant INIT_PRICE = 2_600e8; // $2 600 in 8-decimal Chainlink units
+    uint256 internal constant THRESHOLD = 3_600; // 1 hour staleness window
 
     function setUp() public {
         mock = new MockV3Aggregator(DECIMALS, INIT_PRICE);
@@ -99,17 +98,13 @@ contract OracleResolverTest is Test {
 
     function test_getPrice_revertsOnNegativeAnswer() public {
         mock.updateRoundData(-1, block.timestamp);
-        vm.expectRevert(
-            abi.encodeWithSelector(OracleResolver.InvalidPrice.selector, int256(-1))
-        );
+        vm.expectRevert(abi.encodeWithSelector(OracleResolver.InvalidPrice.selector, int256(-1)));
         oracle.getPrice();
     }
 
     function test_getPrice_revertsOnZeroAnswer() public {
         mock.updateRoundData(0, block.timestamp);
-        vm.expectRevert(
-            abi.encodeWithSelector(OracleResolver.InvalidPrice.selector, int256(0))
-        );
+        vm.expectRevert(abi.encodeWithSelector(OracleResolver.InvalidPrice.selector, int256(0)));
         oracle.getPrice();
     }
 

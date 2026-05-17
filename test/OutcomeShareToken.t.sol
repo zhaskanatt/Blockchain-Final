@@ -7,23 +7,28 @@ import "../src/tokens/OutcomeShareToken.sol";
 contract OutcomeShareTokenTest is Test {
     OutcomeShareToken internal token;
 
-    address internal admin  = makeAddr("admin");
+    address internal admin = makeAddr("admin");
     address internal minter = makeAddr("minter");
-    address internal alice  = makeAddr("alice");
-    address internal bob    = makeAddr("bob");
+    address internal alice = makeAddr("alice");
+    address internal bob = makeAddr("bob");
 
-    uint256 internal constant MKT_0   = 0;
-    uint256 internal constant MKT_1   = 1;
+    uint256 internal constant MKT_0 = 0;
+    uint256 internal constant MKT_1 = 1;
 
     // Cached roles and IDs — computed before any vm.prank so external calls
     // never accidentally consume a prank.
     bytes32 internal MINTER_ROLE;
     uint256 internal YES0; // yesId(MKT_0)
-    uint256 internal NO0;  // noId(MKT_0)
+    uint256 internal NO0; // noId(MKT_0)
 
     // Pure local helpers — never make external calls, safe under vm.prank.
-    function _yesId(uint256 m) internal pure returns (uint256) { return m << 1; }
-    function _noId(uint256 m)  internal pure returns (uint256) { return (m << 1) | 1; }
+    function _yesId(uint256 m) internal pure returns (uint256) {
+        return m << 1;
+    }
+
+    function _noId(uint256 m) internal pure returns (uint256) {
+        return (m << 1) | 1;
+    }
 
     function setUp() public {
         vm.prank(admin);
@@ -32,7 +37,7 @@ contract OutcomeShareTokenTest is Test {
         // Cache roles/IDs before any prank
         MINTER_ROLE = token.MINTER_ROLE();
         YES0 = _yesId(MKT_0);
-        NO0  = _noId(MKT_0);
+        NO0 = _noId(MKT_0);
 
         // Grant minter role; use startPrank so the whole block runs as admin
         vm.startPrank(admin);
@@ -87,16 +92,12 @@ contract OutcomeShareTokenTest is Test {
         token.registerMarket(MKT_0, "Q");
 
         vm.prank(minter);
-        vm.expectRevert(
-            abi.encodeWithSelector(OutcomeShareToken.MarketAlreadyRegistered.selector, MKT_0)
-        );
+        vm.expectRevert(abi.encodeWithSelector(OutcomeShareToken.MarketAlreadyRegistered.selector, MKT_0));
         token.registerMarket(MKT_0, "Q again");
     }
 
     function test_getQuestionUnregisteredReverts() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(OutcomeShareToken.MarketNotRegistered.selector, 999)
-        );
+        vm.expectRevert(abi.encodeWithSelector(OutcomeShareToken.MarketNotRegistered.selector, 999));
         token.getQuestion(999);
     }
 
@@ -196,7 +197,7 @@ contract OutcomeShareTokenTest is Test {
         token.safeTransferFrom(alice, bob, YES0, 40e18, "");
 
         assertEq(token.balanceOf(alice, YES0), 60e18);
-        assertEq(token.balanceOf(bob,   YES0), 40e18);
+        assertEq(token.balanceOf(bob, YES0), 40e18);
     }
 
     function test_transferDoesNotCrossYesNo() public {
@@ -244,7 +245,7 @@ contract OutcomeShareTokenTest is Test {
     function testFuzz_differentMarketsNeverShareIds(uint128 a, uint128 b) public pure {
         vm.assume(a != b);
         assertNotEq(_yesId(a), _yesId(b));
-        assertNotEq(_noId(a),  _noId(b));
+        assertNotEq(_noId(a), _noId(b));
         assertNotEq(_yesId(a), _noId(b));
     }
 
@@ -283,6 +284,6 @@ contract OutcomeShareTokenTest is Test {
         token.mint(alice, NO0, noAmt, "");
 
         assertEq(token.balanceOf(alice, YES0), yesAmt);
-        assertEq(token.balanceOf(alice, NO0),  noAmt);
+        assertEq(token.balanceOf(alice, NO0), noAmt);
     }
 }

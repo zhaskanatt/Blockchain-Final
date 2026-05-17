@@ -7,19 +7,21 @@ import "../src/assembly/YulMath.sol";
 /// @notice Exposes the library functions as external calls so Forge can measure
 ///         their individual gas costs via forge snapshot / --gas-report.
 contract YulMathHarness {
-    function getAmountOut_Yul(uint256 a, uint256 rIn, uint256 rOut)
-        external pure returns (uint256)
-    { return YulMath.getAmountOut_Yul(a, rIn, rOut); }
+    function getAmountOut_Yul(uint256 a, uint256 rIn, uint256 rOut) external pure returns (uint256) {
+        return YulMath.getAmountOut_Yul(a, rIn, rOut);
+    }
 
-    function getAmountOut_Solidity(uint256 a, uint256 rIn, uint256 rOut)
-        external pure returns (uint256)
-    { return YulMath.getAmountOut_Solidity(a, rIn, rOut); }
+    function getAmountOut_Solidity(uint256 a, uint256 rIn, uint256 rOut) external pure returns (uint256) {
+        return YulMath.getAmountOut_Solidity(a, rIn, rOut);
+    }
 
-    function sqrt_Yul(uint256 y) external pure returns (uint256)
-    { return YulMath.sqrt_Yul(y); }
+    function sqrt_Yul(uint256 y) external pure returns (uint256) {
+        return YulMath.sqrt_Yul(y);
+    }
 
-    function sqrt_Solidity(uint256 y) external pure returns (uint256)
-    { return YulMath.sqrt_Solidity(y); }
+    function sqrt_Solidity(uint256 y) external pure returns (uint256) {
+        return YulMath.sqrt_Solidity(y);
+    }
 }
 
 contract YulMathTest is Test {
@@ -46,11 +48,11 @@ contract YulMathTest is Test {
     }
 
     function test_getAmountOut_largeAmounts() public view {
-        uint256 rIn  = 1_000_000e18;
+        uint256 rIn = 1_000_000e18;
         uint256 rOut = 1_000_000e18;
-        uint256 amt  = 1_000e18;
-        uint256 yul  = h.getAmountOut_Yul(amt, rIn, rOut);
-        uint256 sol  = h.getAmountOut_Solidity(amt, rIn, rOut);
+        uint256 amt = 1_000e18;
+        uint256 yul = h.getAmountOut_Yul(amt, rIn, rOut);
+        uint256 sol = h.getAmountOut_Solidity(amt, rIn, rOut);
         assertEq(yul, sol);
     }
 
@@ -85,16 +87,16 @@ contract YulMathTest is Test {
     }
 
     function test_sqrt_perfectSquares() public view {
-        uint256[5] memory inputs  = [uint256(4), 9, 16, 100, 1_000_000];
-        uint256[5] memory outputs = [uint256(2), 3,  4,  10,     1_000];
+        uint256[5] memory inputs = [uint256(4), 9, 16, 100, 1_000_000];
+        uint256[5] memory outputs = [uint256(2), 3, 4, 10, 1_000];
         for (uint256 i; i < 5; i++) {
-            assertEq(h.sqrt_Yul(inputs[i]),      outputs[i]);
+            assertEq(h.sqrt_Yul(inputs[i]), outputs[i]);
             assertEq(h.sqrt_Solidity(inputs[i]), outputs[i]);
         }
     }
 
     function test_sqrt_largeValue() public view {
-        uint256 y   = 1e36;
+        uint256 y = 1e36;
         uint256 yul = h.sqrt_Yul(y);
         uint256 sol = h.sqrt_Solidity(y);
         assertEq(yul, sol);
@@ -103,11 +105,10 @@ contract YulMathTest is Test {
 
     // ── Fuzz: Yul and Solidity always return identical results ────────────────
 
-    function testFuzz_getAmountOut_YulMatchesSolidity(
-        uint112 amountIn,
-        uint112 reserveIn,
-        uint112 reserveOut
-    ) public view {
+    function testFuzz_getAmountOut_YulMatchesSolidity(uint112 amountIn, uint112 reserveIn, uint112 reserveOut)
+        public
+        view
+    {
         vm.assume(amountIn > 0 && reserveIn > 0 && reserveOut > 0);
         // Guard against overflow: amountIn*997*reserveOut must fit uint256
         // uint112 max ≈ 5.19e33; 997 * 5.19e33 * 5.19e33 < 2^256 ✓
@@ -122,11 +123,10 @@ contract YulMathTest is Test {
 
     // ── Fuzz: output is always strictly less than reserveOut ─────────────────
 
-    function testFuzz_getAmountOut_neverDrainsPool(
-        uint112 amountIn,
-        uint112 reserveIn,
-        uint112 reserveOut
-    ) public view {
+    function testFuzz_getAmountOut_neverDrainsPool(uint112 amountIn, uint112 reserveIn, uint112 reserveOut)
+        public
+        view
+    {
         vm.assume(amountIn > 0 && reserveIn > 0 && reserveOut > 0);
         uint256 out = h.getAmountOut_Yul(amountIn, reserveIn, reserveOut);
         assertLt(out, reserveOut);
@@ -134,18 +134,16 @@ contract YulMathTest is Test {
 
     // ── Fuzz: fee is always non-zero (output < no-fee output) ────────────────
 
-    function testFuzz_getAmountOut_feeAlwaysCharged(
-        uint112 amountIn,
-        uint112 reserveIn,
-        uint112 reserveOut
-    ) public view {
+    function testFuzz_getAmountOut_feeAlwaysCharged(uint112 amountIn, uint112 reserveIn, uint112 reserveOut)
+        public
+        view
+    {
         vm.assume(amountIn > 0 && reserveIn > 0 && reserveOut > 1_000);
         vm.assume(uint256(amountIn) * reserveOut / (uint256(reserveIn) + amountIn) > 0);
 
-        uint256 withFee    = h.getAmountOut_Yul(amountIn, reserveIn, reserveOut);
+        uint256 withFee = h.getAmountOut_Yul(amountIn, reserveIn, reserveOut);
         // No-fee output: amountIn*reserveOut / (reserveIn + amountIn)
-        uint256 withoutFee = uint256(amountIn) * reserveOut /
-                             (uint256(reserveIn) + amountIn);
+        uint256 withoutFee = uint256(amountIn) * reserveOut / (uint256(reserveIn) + amountIn);
         assertLe(withFee, withoutFee);
     }
 

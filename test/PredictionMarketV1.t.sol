@@ -14,17 +14,17 @@ import "../src/mocks/MockERC20.sol";
 
 contract MarketBase is Test {
     PredictionMarketV1 internal market;
-    MockERC20          internal usdc;
-    OutcomeShareToken  internal shareToken;
-    FeeVault           internal vault;
+    MockERC20 internal usdc;
+    OutcomeShareToken internal shareToken;
+    FeeVault internal vault;
 
-    address internal owner   = makeAddr("owner");
-    address internal alice   = makeAddr("alice");
-    address internal bob     = makeAddr("bob");
-    address internal trader  = makeAddr("trader");
+    address internal owner = makeAddr("owner");
+    address internal alice = makeAddr("alice");
+    address internal bob = makeAddr("bob");
+    address internal trader = makeAddr("trader");
 
-    uint256 internal constant SEED    = 100_000e6;  // 100k USDC seed liquidity
-    uint256 internal constant END     = 7 days;
+    uint256 internal constant SEED = 100_000e6; // 100k USDC seed liquidity
+    uint256 internal constant END = 7 days;
     uint256 internal mktId;
 
     bytes32 internal YES_ID_SLOT;
@@ -44,10 +44,8 @@ contract MarketBase is Test {
 
         // 4. Deploy market implementation + proxy
         PredictionMarketV1 impl = new PredictionMarketV1();
-        bytes memory initData = abi.encodeCall(
-            PredictionMarketV1.initialize,
-            (address(usdc), address(shareToken), address(vault), owner)
-        );
+        bytes memory initData =
+            abi.encodeCall(PredictionMarketV1.initialize, (address(usdc), address(shareToken), address(vault), owner));
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         market = PredictionMarketV1(address(proxy));
 
@@ -59,15 +57,19 @@ contract MarketBase is Test {
         vm.stopPrank();
 
         // 6. Approve collateral for market from treasury
-        usdc.mint(owner,  10_000_000e6);
-        usdc.mint(alice,  10_000_000e6);
-        usdc.mint(bob,    10_000_000e6);
+        usdc.mint(owner, 10_000_000e6);
+        usdc.mint(alice, 10_000_000e6);
+        usdc.mint(bob, 10_000_000e6);
         usdc.mint(trader, 10_000_000e6);
 
-        vm.prank(owner);  usdc.approve(address(market), type(uint256).max);
-        vm.prank(alice);  usdc.approve(address(market), type(uint256).max);
-        vm.prank(bob);    usdc.approve(address(market), type(uint256).max);
-        vm.prank(trader); usdc.approve(address(market), type(uint256).max);
+        vm.prank(owner);
+        usdc.approve(address(market), type(uint256).max);
+        vm.prank(alice);
+        usdc.approve(address(market), type(uint256).max);
+        vm.prank(bob);
+        usdc.approve(address(market), type(uint256).max);
+        vm.prank(trader);
+        usdc.approve(address(market), type(uint256).max);
 
         // 7. Create a default market and add seed liquidity
         vm.startPrank(owner);
@@ -78,18 +80,22 @@ contract MarketBase is Test {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    function _yesId() internal view returns (uint256) { return shareToken.yesId(mktId); }
-    function _noId()  internal view returns (uint256) { return shareToken.noId(mktId);  }
+    function _yesId() internal view returns (uint256) {
+        return shareToken.yesId(mktId);
+    }
+
+    function _noId() internal view returns (uint256) {
+        return shareToken.noId(mktId);
+    }
 
     function _getReserves() internal view returns (uint256 yes, uint256 no) {
-        (,yes, no,,,, ) = market.markets(mktId);
+        (, yes, no,,,,) = market.markets(mktId);
     }
 }
 
 // ── Unit tests ────────────────────────────────────────────────────────────────
 
 contract PredictionMarketV1UnitTest is MarketBase {
-
     // ── Initialisation ────────────────────────────────────────────────────────
 
     function test_initialOwner() public view {
@@ -129,7 +135,7 @@ contract PredictionMarketV1UnitTest is MarketBase {
     function test_addLiquidity_seedsReservesEvenly() public view {
         (uint256 yes, uint256 no) = _getReserves();
         assertEq(yes, SEED / 2);
-        assertEq(no,  SEED / 2);
+        assertEq(no, SEED / 2);
     }
 
     function test_addLiquidity_secondDeposit() public {
@@ -139,7 +145,7 @@ contract PredictionMarketV1UnitTest is MarketBase {
 
         (uint256 yes, uint256 no) = _getReserves();
         assertEq(yes, SEED / 2 + deposit / 2);
-        assertEq(no,  SEED / 2 + deposit / 2);
+        assertEq(no, SEED / 2 + deposit / 2);
     }
 
     function test_removeLiquidity_returnsCollateral() public {
@@ -212,7 +218,7 @@ contract PredictionMarketV1UnitTest is MarketBase {
         vm.prank(owner);
         market.resolve(mktId, PredictionMarketV1.Outcome.Yes);
 
-        (,,,,,PredictionMarketV1.Outcome outcome,) = market.markets(mktId);
+        (,,,,, PredictionMarketV1.Outcome outcome,) = market.markets(mktId);
         assertEq(uint8(outcome), uint8(PredictionMarketV1.Outcome.Yes));
     }
 
@@ -266,7 +272,6 @@ contract PredictionMarketV1UnitTest is MarketBase {
 // ── Fuzz tests ────────────────────────────────────────────────────────────────
 
 contract PredictionMarketV1FuzzTest is MarketBase {
-
     /// Output is always strictly less than the YES reserve.
     function testFuzz_swap_outputBoundedByReserve(uint48 amountIn) public {
         // Floor at 1_000 so amountNet*997/1000 always produces >0 output.
@@ -329,47 +334,44 @@ contract PredictionMarketV1FuzzTest is MarketBase {
 
 contract PredictionMarketV1Handler is Test {
     PredictionMarketV1 internal market;
-    MockERC20          internal usdc;
-    OutcomeShareToken  internal shareToken;
+    MockERC20 internal usdc;
+    OutcomeShareToken internal shareToken;
 
-    address internal lp     = makeAddr("lp");
+    address internal lp = makeAddr("lp");
     address internal trader = makeAddr("trader");
     uint256 internal mktId;
 
     // Track k for invariant checks
     uint256 public lastK;
 
-    constructor(
-        PredictionMarketV1 market_,
-        MockERC20 usdc_,
-        OutcomeShareToken shareToken_,
-        uint256 mktId_
-    ) {
-        market     = market_;
-        usdc       = usdc_;
+    constructor(PredictionMarketV1 market_, MockERC20 usdc_, OutcomeShareToken shareToken_, uint256 mktId_) {
+        market = market_;
+        usdc = usdc_;
         shareToken = shareToken_;
-        mktId      = mktId_;
+        mktId = mktId_;
 
-        usdc.mint(lp,     type(uint96).max);
+        usdc.mint(lp, type(uint96).max);
         usdc.mint(trader, type(uint96).max);
 
-        vm.prank(lp);     usdc.approve(address(market), type(uint256).max);
-        vm.prank(trader); usdc.approve(address(market), type(uint256).max);
+        vm.prank(lp);
+        usdc.approve(address(market), type(uint256).max);
+        vm.prank(trader);
+        usdc.approve(address(market), type(uint256).max);
 
         vm.prank(trader);
         shareToken.setApprovalForAll(address(market), true);
 
-        (,uint256 yes, uint256 no,,,,) = market.markets(mktId);
+        (, uint256 yes, uint256 no,,,,) = market.markets(mktId);
         lastK = yes * no;
     }
 
     function swapYes(uint48 amtIn) public {
         amtIn = uint48(bound(amtIn, 1_000, 10_000e6));
-        (,uint256 yesBefore, uint256 noBefore,,,,) = market.markets(mktId);
+        (, uint256 yesBefore, uint256 noBefore,,,,) = market.markets(mktId);
 
         vm.prank(trader);
         try market.swap(mktId, true, amtIn, 0) {
-            (,uint256 yesAfter, uint256 noAfter,,,,) = market.markets(mktId);
+            (, uint256 yesAfter, uint256 noAfter,,,,) = market.markets(mktId);
             lastK = yesAfter * noAfter;
             // k must be >= k_before (fees increase reserves relative to shares out)
             assertGe(lastK, yesBefore * noBefore);
@@ -378,11 +380,11 @@ contract PredictionMarketV1Handler is Test {
 
     function swapNo(uint48 amtIn) public {
         amtIn = uint48(bound(amtIn, 1_000, 10_000e6));
-        (,uint256 yesBefore, uint256 noBefore,,,,) = market.markets(mktId);
+        (, uint256 yesBefore, uint256 noBefore,,,,) = market.markets(mktId);
 
         vm.prank(trader);
         try market.swap(mktId, false, amtIn, 0) {
-            (,uint256 yesAfter, uint256 noAfter,,,,) = market.markets(mktId);
+            (, uint256 yesAfter, uint256 noAfter,,,,) = market.markets(mktId);
             lastK = yesAfter * noAfter;
             assertGe(lastK, yesBefore * noBefore);
         } catch {}
@@ -406,18 +408,18 @@ contract PredictionMarketV1InvariantTest is MarketBase {
 
     /// INV: k = yesReserve * noReserve never decreases on swap.
     function invariant_constantProductNeverDecreases() public view {
-        (,uint256 yes, uint256 no,,,,) = market.markets(mktId);
+        (, uint256 yes, uint256 no,,,,) = market.markets(mktId);
         uint256 kNow = yes * no;
         assertGe(kNow, handler.lastK());
     }
 
     /// INV: market collateral balance covers totalLP redemptions.
     function invariant_collateralSolvency() public view {
-        (,uint256 yes, uint256 no,,,,) = market.markets(mktId);
+        (, uint256 yes, uint256 no,,,,) = market.markets(mktId);
         // The contract holds YES+NO pool shares; their sum ≤ collateral locked
         assertGe(usdc.balanceOf(address(market)), 0);
         // Reserves are always positive if the market exists
         assertGe(yes, 0);
-        assertGe(no,  0);
+        assertGe(no, 0);
     }
 }

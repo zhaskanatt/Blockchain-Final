@@ -41,41 +41,42 @@ import "../vault/FeeVault.sol";
 /// ReentrancyGuardTransient uses transient storage (EIP-1153) — no persistent slot.
 /// V2 additions start at slot 6.
 
-contract PredictionMarketV1 is
-    UUPSUpgradeable,
-    OwnableUpgradeable,
-    ReentrancyGuardTransient
-{
+contract PredictionMarketV1 is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
 
     // ── Constants ─────────────────────────────────────────────────────────────
 
-    uint256 public constant FEE_NUM   = 3;    // 0.3 %
-    uint256 public constant FEE_DEN   = 1000;
+    uint256 public constant FEE_NUM = 3; // 0.3 %
+    uint256 public constant FEE_DEN = 1000;
     uint256 public constant MIN_LIQUIDITY = 1_000; // locked forever on first add
 
     // ── Data structures ───────────────────────────────────────────────────────
 
-    enum Outcome { Unresolved, Yes, No, Invalid }
+    enum Outcome {
+        Unresolved,
+        Yes,
+        No,
+        Invalid
+    }
 
     struct Market {
-        string  question;
-        uint256 yesReserve;   // pool reserve of YES shares
-        uint256 noReserve;    // pool reserve of NO shares
-        uint256 totalLP;      // total LP units outstanding
-        uint256 endTime;      // unix timestamp after which no new trades
+        string question;
+        uint256 yesReserve; // pool reserve of YES shares
+        uint256 noReserve; // pool reserve of NO shares
+        uint256 totalLP; // total LP units outstanding
+        uint256 endTime; // unix timestamp after which no new trades
         Outcome outcome;
-        bool    exists;
+        bool exists;
     }
 
     // ── State (storage layout documented above — do NOT reorder) ──────────────
 
-    IERC20            public collateral;
+    IERC20 public collateral;
     OutcomeShareToken public shareToken;
-    FeeVault          public feeVault;
-    uint256           public nextMarketId;
+    FeeVault public feeVault;
+    uint256 public nextMarketId;
 
-    mapping(uint256 => Market)                     public markets;
+    mapping(uint256 => Market) public markets;
     mapping(uint256 => mapping(address => uint256)) public lpBalances; // marketId → LP → units
 
     // ── Events ────────────────────────────────────────────────────────────────
@@ -102,43 +103,40 @@ contract PredictionMarketV1 is
     // ── Initializer (replaces constructor for UUPS) ───────────────────────────
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() { _disableInitializers(); }
+    constructor() {
+        _disableInitializers();
+    }
 
-    function initialize(
-        address collateral_,
-        address shareToken_,
-        address feeVault_,
-        address initialOwner_
-    ) external initializer {
+    function initialize(address collateral_, address shareToken_, address feeVault_, address initialOwner_)
+        external
+        initializer
+    {
         __Ownable_init(initialOwner_);
         // UUPSUpgradeable and ReentrancyGuardTransient have no init in OZ v5
 
         collateral = IERC20(collateral_);
         shareToken = OutcomeShareToken(shareToken_);
-        feeVault   = FeeVault(feeVault_);
+        feeVault = FeeVault(feeVault_);
     }
 
     // ── UUPS upgrade authorisation ────────────────────────────────────────────
 
-    function _authorizeUpgrade(address newImplementation)
-        internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     // ── Market lifecycle ──────────────────────────────────────────────────────
 
-    function createMarket(string calldata question, uint256 endTime)
-        external onlyOwner returns (uint256 marketId)
-    {
+    function createMarket(string calldata question, uint256 endTime) external onlyOwner returns (uint256 marketId) {
         require(endTime > block.timestamp, "PredictionMarketV1: end in past");
         marketId = nextMarketId++;
 
         markets[marketId] = Market({
-            question:   question,
+            question: question,
             yesReserve: 0,
-            noReserve:  0,
-            totalLP:    0,
-            endTime:    endTime,
-            outcome:    Outcome.Unresolved,
-            exists:     true
+            noReserve: 0,
+            totalLP: 0,
+            endTime: endTime,
+            outcome: Outcome.Unresolved,
+            exists: true
         });
 
         shareToken.registerMarket(marketId, question);
@@ -150,9 +148,7 @@ contract PredictionMarketV1 is
     /// @notice Add liquidity. LP receives equal YES+NO reserves and LP units.
     /// @param collateralAmount Amount of collateral to deposit.
     /// @param marketId         Target market.
-    function addLiquidity(uint256 marketId, uint256 collateralAmount)
-        external nonReentrant
-    {
+    function addLiquidity(uint256 marketId, uint256 collateralAmount) external nonReentrant {
         if (collateralAmount == 0) revert ZeroAmount();
         Market storage mkt = _requireOpen(marketId);
 
@@ -164,7 +160,7 @@ contract PredictionMarketV1 is
         if (mkt.totalLP == 0) {
             // First liquidity: seed both reserves equally, lock MIN_LIQUIDITY
             mkt.yesReserve = halfCollateral;
-            mkt.noReserve  = halfCollateral;
+            mkt.noReserve = halfCollateral;
             lpUnits = YulMath.sqrt_Yul(halfCollateral * halfCollateral) - MIN_LIQUIDITY;
             // Mint MIN_LIQUIDITY to address(1) to lock permanently
             lpBalances[marketId][address(1)] = MIN_LIQUIDITY;
@@ -175,7 +171,7 @@ contract PredictionMarketV1 is
             uint256 totalReserve = mkt.yesReserve + mkt.noReserve;
             lpUnits = (collateralAmount * mkt.totalLP) / totalReserve;
             mkt.yesReserve += halfCollateral;
-            mkt.noReserve  += halfCollateral;
+            mkt.noReserve += halfCollateral;
         }
 
         if (lpUnits == 0) revert InsufficientLiquidity();
@@ -185,33 +181,31 @@ contract PredictionMarketV1 is
 
         // Mint YES and NO shares into the pool reserves (held by this contract)
         shareToken.mint(address(this), shareToken.yesId(marketId), halfCollateral, "");
-        shareToken.mint(address(this), shareToken.noId(marketId),  halfCollateral, "");
+        shareToken.mint(address(this), shareToken.noId(marketId), halfCollateral, "");
 
         emit LiquidityAdded(marketId, msg.sender, collateralAmount, lpUnits);
     }
 
     /// @notice Remove liquidity pro-rata, returning collateral to LP.
-    function removeLiquidity(uint256 marketId, uint256 lpUnits)
-        external nonReentrant
-    {
+    function removeLiquidity(uint256 marketId, uint256 lpUnits) external nonReentrant {
         if (lpUnits == 0) revert ZeroAmount();
         Market storage mkt = _requireMarketExists(marketId);
         require(lpBalances[marketId][msg.sender] >= lpUnits, "PredictionMarketV1: insufficient LP");
 
-        uint256 totalLP   = mkt.totalLP;
-        uint256 yesOut    = (mkt.yesReserve * lpUnits) / totalLP;
-        uint256 noOut     = (mkt.noReserve  * lpUnits) / totalLP;
+        uint256 totalLP = mkt.totalLP;
+        uint256 yesOut = (mkt.yesReserve * lpUnits) / totalLP;
+        uint256 noOut = (mkt.noReserve * lpUnits) / totalLP;
         // collateral backing = min(yesOut, noOut) * 2 (balanced reserves)
-        uint256 colOut    = yesOut + noOut; // both denominated in collateral units
+        uint256 colOut = yesOut + noOut; // both denominated in collateral units
 
         lpBalances[marketId][msg.sender] -= lpUnits;
-        mkt.totalLP    -= lpUnits;
+        mkt.totalLP -= lpUnits;
         mkt.yesReserve -= yesOut;
-        mkt.noReserve  -= noOut;
+        mkt.noReserve -= noOut;
 
         // Burn the pool shares
         shareToken.burn(address(this), shareToken.yesId(marketId), yesOut);
-        shareToken.burn(address(this), shareToken.noId(marketId),  noOut);
+        shareToken.burn(address(this), shareToken.noId(marketId), noOut);
 
         collateral.safeTransfer(msg.sender, colOut);
         emit LiquidityRemoved(marketId, msg.sender, lpUnits, colOut);
@@ -224,30 +218,28 @@ contract PredictionMarketV1 is
     /// @param buyYes       True → buy YES shares, False → buy NO shares.
     /// @param amountIn     Collateral to spend.
     /// @param minAmountOut Slippage guard — revert if output < this.
-    function swap(
-        uint256 marketId,
-        bool    buyYes,
-        uint256 amountIn,
-        uint256 minAmountOut
-    ) external virtual nonReentrant returns (uint256 amountOut) {
+    function swap(uint256 marketId, bool buyYes, uint256 amountIn, uint256 minAmountOut)
+        external
+        virtual
+        nonReentrant
+        returns (uint256 amountOut)
+    {
         return _swap(marketId, buyYes, amountIn, minAmountOut);
     }
 
     /// @dev Internal swap logic shared between V1 and V2.
-    function _swap(
-        uint256 marketId,
-        bool    buyYes,
-        uint256 amountIn,
-        uint256 minAmountOut
-    ) internal returns (uint256 amountOut) {
+    function _swap(uint256 marketId, bool buyYes, uint256 amountIn, uint256 minAmountOut)
+        internal
+        returns (uint256 amountOut)
+    {
         if (amountIn == 0) revert ZeroAmount();
         Market storage mkt = _requireOpen(marketId);
 
         collateral.safeTransferFrom(msg.sender, address(this), amountIn);
 
         // Collect fee → vault
-        uint256 fee        = (amountIn * FEE_NUM) / FEE_DEN;
-        uint256 amountNet  = amountIn - fee;
+        uint256 fee = (amountIn * FEE_NUM) / FEE_DEN;
+        uint256 amountNet = amountIn - fee;
 
         if (fee > 0) {
             collateral.safeIncreaseAllowance(address(feeVault), fee);
@@ -258,10 +250,10 @@ contract PredictionMarketV1 is
         uint256 reserveIn;
         uint256 reserveOut;
         if (buyYes) {
-            reserveIn  = mkt.noReserve;
+            reserveIn = mkt.noReserve;
             reserveOut = mkt.yesReserve;
         } else {
-            reserveIn  = mkt.yesReserve;
+            reserveIn = mkt.yesReserve;
             reserveOut = mkt.noReserve;
         }
 
@@ -272,17 +264,15 @@ contract PredictionMarketV1 is
 
         // Update reserves
         if (buyYes) {
-            mkt.noReserve  += amountNet;
+            mkt.noReserve += amountNet;
             mkt.yesReserve -= amountOut;
         } else {
             mkt.yesReserve += amountNet;
-            mkt.noReserve  -= amountOut;
+            mkt.noReserve -= amountOut;
         }
 
         // Transfer outcome shares from pool to trader
-        uint256 tokenId = buyYes
-            ? shareToken.yesId(marketId)
-            : shareToken.noId(marketId);
+        uint256 tokenId = buyYes ? shareToken.yesId(marketId) : shareToken.noId(marketId);
         shareToken.safeTransferFrom(address(this), msg.sender, tokenId, amountOut, "");
 
         emit Swapped(marketId, msg.sender, buyYes, amountIn, amountOut);
@@ -290,13 +280,11 @@ contract PredictionMarketV1 is
 
     // ── Resolution & redemption ───────────────────────────────────────────────
 
-    function resolve(uint256 marketId, Outcome outcome)
-        external onlyOwner
-    {
+    function resolve(uint256 marketId, Outcome outcome) external onlyOwner {
         Market storage mkt = _requireMarketExists(marketId);
         if (mkt.outcome != Outcome.Unresolved) revert MarketAlreadyResolved(marketId);
-        if (outcome == Outcome.Unresolved)     revert InvalidOutcome();
-        if (block.timestamp < mkt.endTime)     revert MarketNotExpired(marketId);
+        if (outcome == Outcome.Unresolved) revert InvalidOutcome();
+        if (block.timestamp < mkt.endTime) revert MarketNotExpired(marketId);
 
         mkt.outcome = outcome;
         emit Resolved(marketId, outcome);
@@ -309,9 +297,7 @@ contract PredictionMarketV1 is
         if (mkt.outcome == Outcome.Invalid) revert InvalidOutcome();
 
         bool winnerIsYes = (mkt.outcome == Outcome.Yes);
-        uint256 tokenId  = winnerIsYes
-            ? shareToken.yesId(marketId)
-            : shareToken.noId(marketId);
+        uint256 tokenId = winnerIsYes ? shareToken.yesId(marketId) : shareToken.noId(marketId);
 
         // Burn winner shares and pay 1:1 collateral
         shareToken.burn(msg.sender, tokenId, shares);
@@ -322,28 +308,28 @@ contract PredictionMarketV1 is
 
     // ── Internal helpers ──────────────────────────────────────────────────────
 
-    function _requireMarketExists(uint256 marketId)
-        internal view returns (Market storage mkt)
-    {
+    function _requireMarketExists(uint256 marketId) internal view returns (Market storage mkt) {
         mkt = markets[marketId];
         if (!mkt.exists) revert MarketDoesNotExist(marketId);
     }
 
-    function _requireOpen(uint256 marketId)
-        internal view returns (Market storage mkt)
-    {
+    function _requireOpen(uint256 marketId) internal view returns (Market storage mkt) {
         mkt = _requireMarketExists(marketId);
         if (mkt.outcome != Outcome.Unresolved) revert MarketAlreadyResolved(marketId);
-        if (block.timestamp >= mkt.endTime)    revert MarketExpired(marketId);
+        if (block.timestamp >= mkt.endTime) revert MarketExpired(marketId);
     }
 
     // ── ERC-1155 receiver (pool holds shares) ─────────────────────────────────
 
-    function onERC1155Received(address, address, uint256, uint256, bytes calldata)
-        external pure returns (bytes4)
-    { return this.onERC1155Received.selector; }
+    function onERC1155Received(address, address, uint256, uint256, bytes calldata) external pure returns (bytes4) {
+        return this.onERC1155Received.selector;
+    }
 
     function onERC1155BatchReceived(address, address, uint256[] calldata, uint256[] calldata, bytes calldata)
-        external pure returns (bytes4)
-    { return this.onERC1155BatchReceived.selector; }
+        external
+        pure
+        returns (bytes4)
+    {
+        return this.onERC1155BatchReceived.selector;
+    }
 }

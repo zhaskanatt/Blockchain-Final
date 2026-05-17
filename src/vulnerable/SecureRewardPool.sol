@@ -24,7 +24,6 @@ import "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 ///   • ReentrancyGuardTransient provides a hard revert on any re-entry attempt.
 
 contract SecureRewardPool is ReentrancyGuardTransient {
-
     mapping(address => uint256) public rewards;
     uint256 public totalDeposited;
 
@@ -35,7 +34,7 @@ contract SecureRewardPool is ReentrancyGuardTransient {
     function deposit() external payable {
         require(msg.value > 0, "SecureRewardPool: zero deposit");
         rewards[msg.sender] += msg.value;
-        totalDeposited      += msg.value;
+        totalDeposited += msg.value;
         emit Deposited(msg.sender, msg.value);
     }
 

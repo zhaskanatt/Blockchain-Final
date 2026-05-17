@@ -41,7 +41,7 @@ contract Treasury is Ownable {
     /// @notice Release ETH to a recipient. Called by TimelockController after governance.
     function releaseETH(address payable to, uint256 amount) external onlyOwner {
         if (to == address(0)) revert ZeroAddress();
-        if (amount == 0)      revert ZeroAmount();
+        if (amount == 0) revert ZeroAmount();
         if (amount > address(this).balance) revert InsufficientETH(amount, address(this).balance);
 
         // CEI: emit before external call

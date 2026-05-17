@@ -33,7 +33,6 @@ pragma solidity ^0.8.24;
 ///   Step 2: Add ReentrancyGuardTransient as a belt-and-suspenders guard.
 
 contract VulnerableRewardPool {
-
     mapping(address => uint256) public rewards;
     uint256 public totalDeposited;
 
@@ -44,7 +43,7 @@ contract VulnerableRewardPool {
     function deposit() external payable {
         require(msg.value > 0, "VulnerableRewardPool: zero deposit");
         rewards[msg.sender] += msg.value;
-        totalDeposited      += msg.value;
+        totalDeposited += msg.value;
         emit Deposited(msg.sender, msg.value);
     }
 

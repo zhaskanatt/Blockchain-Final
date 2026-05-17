@@ -9,19 +9,13 @@ interface IAggregatorV3 {
     function latestRoundData()
         external
         view
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        );
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
     function decimals() external view returns (uint8);
     function description() external view returns (string memory);
 }
 
 interface IERC20Minimal {
-    function decimals()    external view returns (uint8);
+    function decimals() external view returns (uint8);
     function totalSupply() external view returns (uint256);
     function balanceOf(address) external view returns (uint256);
     function transfer(address, uint256) external returns (bool);
@@ -29,10 +23,7 @@ interface IERC20Minimal {
 }
 
 interface IUniswapV2Pair {
-    function getReserves()
-        external
-        view
-        returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
+    function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
     function token0() external view returns (address);
     function token1() external view returns (address);
     function totalSupply() external view returns (uint256);
@@ -43,14 +34,14 @@ interface IUniswapV2Pair {
 // Block 21 000 000  ≈  2024-10-14  (ETH ≈ $2 600, USDC supply ≈ 35 B)
 uint256 constant FORK_BLOCK = 21_000_000;
 
-address constant CHAINLINK_ETH_USD  = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
-address constant USDC               = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-address constant UNISWAP_V2_ROUTER  = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-address constant UNISWAP_ETHUSDC    = 0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc; // USDC/WETH pair
-address constant WETH               = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+address constant CHAINLINK_ETH_USD = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
+address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+address constant UNISWAP_V2_ROUTER = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
+address constant UNISWAP_ETHUSDC = 0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc; // USDC/WETH pair
+address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
 // Binance 14 hot wallet — known USDC whale at block 21 000 000
-address constant USDC_WHALE         = 0x28C6c06298d514Db089934071355E5743bf21d60;
+address constant USDC_WHALE = 0x28C6c06298d514Db089934071355E5743bf21d60;
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  FORK TEST 1 — Chainlink ETH/USD price feed (mainnet)
@@ -67,8 +58,8 @@ address constant USDC_WHALE         = 0x28C6c06298d514Db089934071355E5743bf21d60
 ///   5. The ETH price at the pinned block is within a plausible range ($500–$20k).
 contract ChainlinkForkTest is Test {
     IAggregatorV3 internal feed;
-    uint256        internal forkId;
-    bool           internal _skip;
+    uint256 internal forkId;
+    bool internal _skip;
 
     function setUp() public {
         string memory rpc = vm.envOr("ETH_MAINNET_RPC", string(""));
@@ -77,11 +68,12 @@ contract ChainlinkForkTest is Test {
             return; // skip gracefully when ETH_MAINNET_RPC is not set
         }
         forkId = vm.createSelectFork(rpc, FORK_BLOCK);
-        feed   = IAggregatorV3(CHAINLINK_ETH_USD);
+        feed = IAggregatorV3(CHAINLINK_ETH_USD);
     }
 
     modifier forkOnly() {
-        if (_skip) { vm.skip(true); return; }
+        if (_skip) vm.skip(true);
+        return;
         _;
     }
 
@@ -97,8 +89,7 @@ contract ChainlinkForkTest is Test {
     }
 
     function test_fork_chainlink_latestRoundData_positivePrice() public forkOnly {
-        (uint80 roundId, int256 answer,, uint256 updatedAt, uint80 answeredInRound)
-            = feed.latestRoundData();
+        (uint80 roundId, int256 answer,, uint256 updatedAt, uint80 answeredInRound) = feed.latestRoundData();
 
         // Price must be positive
         assertGt(answer, 0, "fork: price must be positive");
@@ -114,7 +105,7 @@ contract ChainlinkForkTest is Test {
         (, int256 answer,,,) = feed.latestRoundData();
 
         // At block 21 000 000 ETH was ~$2 600; assert $500 – $20 000 range
-        int256 minPrice = 500e8;   // $500  in 8-decimal Chainlink units
+        int256 minPrice = 500e8; // $500  in 8-decimal Chainlink units
         int256 maxPrice = 20_000e8; // $20k
 
         assertGe(answer, minPrice, "fork: price below $500 at pinned block");
@@ -122,7 +113,7 @@ contract ChainlinkForkTest is Test {
     }
 
     function test_fork_chainlink_stalenessWindow() public forkOnly {
-        (,, , uint256 updatedAt,) = feed.latestRoundData();
+        (,,, uint256 updatedAt,) = feed.latestRoundData();
 
         // At the pinned block, the feed must have been updated within 3 600 s
         uint256 age = block.timestamp - updatedAt;
@@ -144,17 +135,19 @@ contract ChainlinkForkTest is Test {
 ///   4. vm.prank can simulate a USDC transfer from a whale (integration check).
 contract USDCForkTest is Test {
     IERC20Minimal internal usdc;
-    bool          internal _skip;
+    bool internal _skip;
 
     function setUp() public {
         string memory rpc = vm.envOr("ETH_MAINNET_RPC", string(""));
-        if (bytes(rpc).length == 0) { _skip = true; return; }
+        if (bytes(rpc).length == 0) _skip = true;
+        return;
         vm.createSelectFork(rpc, FORK_BLOCK);
         usdc = IERC20Minimal(USDC);
     }
 
     modifier forkOnly() {
-        if (_skip) { vm.skip(true); return; }
+        if (_skip) vm.skip(true);
+        return;
         _;
     }
 
@@ -176,9 +169,9 @@ contract USDCForkTest is Test {
 
     function test_fork_usdc_whaleCanTransfer() public forkOnly {
         address recipient = makeAddr("recipient");
-        uint256 amount    = 1_000e6; // $1 000 USDC
+        uint256 amount = 1_000e6; // $1 000 USDC
 
-        uint256 whaleBefore     = usdc.balanceOf(USDC_WHALE);
+        uint256 whaleBefore = usdc.balanceOf(USDC_WHALE);
         uint256 recipientBefore = usdc.balanceOf(recipient);
 
         // Simulate the whale transferring to recipient
@@ -186,7 +179,7 @@ contract USDCForkTest is Test {
         bool ok = usdc.transfer(recipient, amount);
 
         assertTrue(ok, "fork: USDC transfer must return true");
-        assertEq(usdc.balanceOf(USDC_WHALE),  whaleBefore - amount);
+        assertEq(usdc.balanceOf(USDC_WHALE), whaleBefore - amount);
         assertEq(usdc.balanceOf(recipient), recipientBefore + amount);
     }
 }
@@ -205,17 +198,19 @@ contract USDCForkTest is Test {
 ///   4. YulMath.getAmountOut produces the same result as the V2 formula at real reserves.
 contract UniswapV2ForkTest is Test {
     IUniswapV2Pair internal pair;
-    bool           internal _skip;
+    bool internal _skip;
 
     function setUp() public {
         string memory rpc = vm.envOr("ETH_MAINNET_RPC", string(""));
-        if (bytes(rpc).length == 0) { _skip = true; return; }
+        if (bytes(rpc).length == 0) _skip = true;
+        return;
         vm.createSelectFork(rpc, FORK_BLOCK);
         pair = IUniswapV2Pair(UNISWAP_ETHUSDC);
     }
 
     modifier forkOnly() {
-        if (_skip) { vm.skip(true); return; }
+        if (_skip) vm.skip(true);
+        return;
         _;
     }
 
@@ -223,10 +218,7 @@ contract UniswapV2ForkTest is Test {
         address t0 = pair.token0();
         address t1 = pair.token1();
         // USDC/WETH pair: token0 == USDC, token1 == WETH (alphabetical by address)
-        assertTrue(
-            (t0 == USDC && t1 == WETH) || (t0 == WETH && t1 == USDC),
-            "fork: pair must contain USDC and WETH"
-        );
+        assertTrue((t0 == USDC && t1 == WETH) || (t0 == WETH && t1 == USDC), "fork: pair must contain USDC and WETH");
     }
 
     function test_fork_uniswapV2_reservesNonZero() public forkOnly {
@@ -249,7 +241,7 @@ contract UniswapV2ForkTest is Test {
 
         emit log_named_uint("Implied ETH price at fork block (USD)", impliedPrice);
 
-        assertGt(impliedPrice, 500,    "fork: ETH price must be above $500");
+        assertGt(impliedPrice, 500, "fork: ETH price must be above $500");
         assertLt(impliedPrice, 20_000, "fork: ETH price must be below $20 000");
     }
 

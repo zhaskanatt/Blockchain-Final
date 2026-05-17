@@ -14,11 +14,7 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
     event Minted(address indexed to, uint256 amount);
 
-    constructor(address initialOwner)
-        ERC20("PredictDAO", "PDAO")
-        ERC20Permit("PredictDAO")
-        Ownable(initialOwner)
-    {
+    constructor(address initialOwner) ERC20("PredictDAO", "PDAO") ERC20Permit("PredictDAO") Ownable(initialOwner) {
         _mint(initialOwner, 10_000_000e18); // 10 % initial distribution
     }
 
@@ -33,19 +29,11 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
     // ── Solidity overrides required when inheriting ERC20Votes + ERC20Permit ──
 
-    function _update(address from, address to, uint256 value)
-        internal
-        override(ERC20, ERC20Votes)
-    {
+    function _update(address from, address to, uint256 value) internal override(ERC20, ERC20Votes) {
         super._update(from, to, value);
     }
 
-    function nonces(address owner)
-        public
-        view
-        override(ERC20Permit, Nonces)
-        returns (uint256)
-    {
+    function nonces(address owner) public view override(ERC20Permit, Nonces) returns (uint256) {
         return super.nonces(owner);
     }
 }

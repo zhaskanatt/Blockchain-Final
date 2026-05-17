@@ -19,31 +19,30 @@ import "../src/governance/Treasury.sol";
 ///   Proposal threshold: 1 000 000 PDAO (1 % of MAX_SUPPLY)
 ///   Timelock delay   : 2 days = 172 800 seconds
 contract GovernanceTest is Test {
-
     // ── Contracts ─────────────────────────────────────────────────────────────
 
-    GovernanceToken    internal token;
+    GovernanceToken internal token;
     TimelockController internal timelock;
     PredictionGovernor internal governor;
-    Treasury           internal treasury;
+    Treasury internal treasury;
 
     // ── Actors ────────────────────────────────────────────────────────────────
 
-    address internal deployer  = makeAddr("deployer");
-    address internal proposer  = makeAddr("proposer");  // holds 1 % of supply
-    address internal voter1    = makeAddr("voter1");    // large holder
-    address internal voter2    = makeAddr("voter2");    // large holder
-    address internal stranger  = makeAddr("stranger"); // no tokens
+    address internal deployer = makeAddr("deployer");
+    address internal proposer = makeAddr("proposer"); // holds 1 % of supply
+    address internal voter1 = makeAddr("voter1"); // large holder
+    address internal voter2 = makeAddr("voter2"); // large holder
+    address internal stranger = makeAddr("stranger"); // no tokens
 
     address internal recipient = makeAddr("recipient"); // ETH release target
 
     // ── Parameters ────────────────────────────────────────────────────────────
 
-    uint256 internal constant TIMELOCK_DELAY   = 2 days;         // 172 800 s
-    uint256 internal constant VOTING_DELAY     = 7_200;          // blocks
-    uint256 internal constant VOTING_PERIOD    = 50_400;         // blocks
-    uint256 internal constant PROPOSAL_THRESH  = 1_000_000e18;   // 1 % of MAX_SUPPLY
-    uint256 internal constant QUORUM_PCT       = 4;              // 4 %
+    uint256 internal constant TIMELOCK_DELAY = 2 days; // 172 800 s
+    uint256 internal constant VOTING_DELAY = 7_200; // blocks
+    uint256 internal constant VOTING_PERIOD = 50_400; // blocks
+    uint256 internal constant PROPOSAL_THRESH = 1_000_000e18; // 1 % of MAX_SUPPLY
+    uint256 internal constant QUORUM_PCT = 4; // 4 %
 
     // ── Setup ─────────────────────────────────────────────────────────────────
 
@@ -67,22 +66,25 @@ contract GovernanceTest is Test {
         treasury = new Treasury(address(timelock));
 
         // 5. Wire Timelock roles: grant PROPOSER to governor, revoke deployer's admin
-        timelock.grantRole(timelock.PROPOSER_ROLE(),  address(governor));
+        timelock.grantRole(timelock.PROPOSER_ROLE(), address(governor));
         timelock.grantRole(timelock.CANCELLER_ROLE(), address(governor));
         timelock.revokeRole(timelock.DEFAULT_ADMIN_ROLE(), deployer);
 
         // 6. Distribute tokens
         //    voter1 + voter2 each get 5 M (total 10 M distributed; 10 M stays with deployer)
-        token.mint(voter1,   5_000_000e18);
-        token.mint(voter2,   5_000_000e18);
+        token.mint(voter1, 5_000_000e18);
+        token.mint(voter2, 5_000_000e18);
         token.mint(proposer, PROPOSAL_THRESH); // exactly threshold
 
         vm.stopPrank();
 
         // 7. Delegate voting power (must be done before snapshot block)
-        vm.prank(voter1);   token.delegate(voter1);
-        vm.prank(voter2);   token.delegate(voter2);
-        vm.prank(proposer); token.delegate(proposer);
+        vm.prank(voter1);
+        token.delegate(voter1);
+        vm.prank(voter2);
+        token.delegate(voter2);
+        vm.prank(proposer);
+        token.delegate(proposer);
 
         // 8. Seed the treasury with ETH
         vm.deal(address(treasury), 10 ether);
@@ -98,21 +100,16 @@ contract GovernanceTest is Test {
     function _buildReleaseProposal(address to, uint256 amount)
         internal
         view
-        returns (
-            address[] memory targets,
-            uint256[] memory values,
-            bytes[]   memory calldatas,
-            string    memory description
-        )
+        returns (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description)
     {
-        targets    = new address[](1);
-        values     = new uint256[](1);
-        calldatas  = new bytes[](1);
+        targets = new address[](1);
+        values = new uint256[](1);
+        calldatas = new bytes[](1);
 
-        targets[0]   = address(treasury);
-        values[0]    = 0;
+        targets[0] = address(treasury);
+        values[0] = 0;
         calldatas[0] = abi.encodeCall(Treasury.releaseETH, (payable(to), amount));
-        description  = "Release 1 ETH to recipient - governance test proposal";
+        description = "Release 1 ETH to recipient - governance test proposal";
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -168,8 +165,8 @@ contract GovernanceTest is Test {
     // ─────────────────────────────────────────────────────────────────────────
 
     function test_propose_belowThresholdReverts() public {
-        (address[] memory t, uint256[] memory v, bytes[] memory c, string memory d)
-            = _buildReleaseProposal(recipient, 1 ether);
+        (address[] memory t, uint256[] memory v, bytes[] memory c, string memory d) =
+            _buildReleaseProposal(recipient, 1 ether);
 
         // stranger has 0 tokens — below threshold
         vm.prank(stranger);
@@ -178,8 +175,8 @@ contract GovernanceTest is Test {
     }
 
     function test_propose_atThresholdSucceeds() public {
-        (address[] memory t, uint256[] memory v, bytes[] memory c, string memory d)
-            = _buildReleaseProposal(recipient, 1 ether);
+        (address[] memory t, uint256[] memory v, bytes[] memory c, string memory d) =
+            _buildReleaseProposal(recipient, 1 ether);
 
         vm.prank(proposer); // holds exactly PROPOSAL_THRESH
         uint256 pid = governor.propose(t, v, c, d);
@@ -195,12 +192,8 @@ contract GovernanceTest is Test {
         uint256 releaseAmount = 1 ether;
 
         // ── Step 1: Propose ──────────────────────────────────────────────────
-        (
-            address[] memory targets,
-            uint256[] memory values,
-            bytes[]   memory calldatas,
-            string    memory description
-        ) = _buildReleaseProposal(recipient, releaseAmount);
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) =
+            _buildReleaseProposal(recipient, releaseAmount);
 
         vm.prank(proposer);
         uint256 proposalId = governor.propose(targets, values, calldatas, description);
@@ -229,11 +222,10 @@ contract GovernanceTest is Test {
         governor.castVote(proposalId, 1);
 
         // Verify vote counts
-        (uint256 against, uint256 forVotes, uint256 abstain)
-            = governor.proposalVotes(proposalId);
-        assertGt(forVotes, 0,  "E2E: forVotes must be > 0");
-        assertEq(against,  0,  "E2E: againstVotes must be 0");
-        assertEq(abstain,  0,  "E2E: abstainVotes must be 0");
+        (uint256 against, uint256 forVotes, uint256 abstain) = governor.proposalVotes(proposalId);
+        assertGt(forVotes, 0, "E2E: forVotes must be > 0");
+        assertEq(against, 0, "E2E: againstVotes must be 0");
+        assertEq(abstain, 0, "E2E: abstainVotes must be 0");
 
         // ── Step 4: Advance past voting period ───────────────────────────────
         vm.roll(block.number + VOTING_PERIOD + 1);
@@ -258,8 +250,8 @@ contract GovernanceTest is Test {
         vm.warp(block.timestamp + TIMELOCK_DELAY + 1);
 
         // ── Step 7: Execute ───────────────────────────────────────────────────
-        uint256 recipientBefore  = recipient.balance;
-        uint256 treasuryBefore   = address(treasury).balance;
+        uint256 recipientBefore = recipient.balance;
+        uint256 treasuryBefore = address(treasury).balance;
 
         governor.execute(targets, values, calldatas, descHash);
 
@@ -270,10 +262,14 @@ contract GovernanceTest is Test {
         );
 
         // ── Step 8: Verify on-chain effect ────────────────────────────────────
-        assertEq(recipient.balance - recipientBefore, releaseAmount,
-                 "E2E: recipient must receive exactly the released ETH");
-        assertEq(address(treasury).balance, treasuryBefore - releaseAmount,
-                 "E2E: treasury balance must decrease by release amount");
+        assertEq(
+            recipient.balance - recipientBefore, releaseAmount, "E2E: recipient must receive exactly the released ETH"
+        );
+        assertEq(
+            address(treasury).balance,
+            treasuryBefore - releaseAmount,
+            "E2E: treasury balance must decrease by release amount"
+        );
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -281,12 +277,8 @@ contract GovernanceTest is Test {
     // ─────────────────────────────────────────────────────────────────────────
 
     function test_quorum_proposalDefeatedWhenQuorumNotMet() public {
-        (
-            address[] memory targets,
-            uint256[] memory values,
-            bytes[]   memory calldatas,
-            string    memory description
-        ) = _buildReleaseProposal(recipient, 1 ether);
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) =
+            _buildReleaseProposal(recipient, 1 ether);
 
         // Total supply after setUp = 21M PDAO. 4% quorum = 840k.
         // Create a small voter with 500k < 840k — their lone vote cannot meet quorum.
@@ -322,8 +314,8 @@ contract GovernanceTest is Test {
     // ─────────────────────────────────────────────────────────────────────────
 
     function test_vote_cannotVoteTwice() public {
-        (address[] memory t, uint256[] memory v, bytes[] memory c, string memory d)
-            = _buildReleaseProposal(recipient, 1 ether);
+        (address[] memory t, uint256[] memory v, bytes[] memory c, string memory d) =
+            _buildReleaseProposal(recipient, 1 ether);
 
         vm.prank(proposer);
         uint256 pid = governor.propose(t, v, c, d);
@@ -338,8 +330,8 @@ contract GovernanceTest is Test {
     }
 
     function test_vote_strangerHasNoVotingPower() public {
-        (address[] memory t, uint256[] memory v, bytes[] memory c, string memory d)
-            = _buildReleaseProposal(recipient, 1 ether);
+        (address[] memory t, uint256[] memory v, bytes[] memory c, string memory d) =
+            _buildReleaseProposal(recipient, 1 ether);
 
         vm.prank(proposer);
         uint256 pid = governor.propose(t, v, c, d);
@@ -354,8 +346,8 @@ contract GovernanceTest is Test {
     }
 
     function test_vote_cannotVoteBeforeDelay() public {
-        (address[] memory t, uint256[] memory v, bytes[] memory c, string memory d)
-            = _buildReleaseProposal(recipient, 1 ether);
+        (address[] memory t, uint256[] memory v, bytes[] memory c, string memory d) =
+            _buildReleaseProposal(recipient, 1 ether);
 
         vm.prank(proposer);
         uint256 pid = governor.propose(t, v, c, d);

@@ -29,7 +29,6 @@ import "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 ///   • ReentrancyGuardTransient on all ETH-sending paths.
 
 contract SecureTreasury is Ownable, ReentrancyGuardTransient {
-
     uint256 public totalWithdrawn;
 
     event Received(address indexed sender, uint256 amount);
@@ -46,8 +45,9 @@ contract SecureTreasury is Ownable, ReentrancyGuardTransient {
     /// @dev    SECURE: msg.sender checked via OZ Ownable; nonReentrant guard applied.
     function withdraw(address payable to, uint256 amount)
         external
-        onlyOwner        // FIX 1: msg.sender == owner(), never tx.origin
-        nonReentrant     // FIX 2: belt-and-suspenders reentrancy protection
+        onlyOwner // FIX 1: msg.sender == owner(), never tx.origin
+        nonReentrant // FIX 2: belt-and-suspenders reentrancy protection
+
     {
         require(amount <= address(this).balance, "SecureTreasury: insufficient funds");
         require(to != address(0), "SecureTreasury: zero recipient");
@@ -62,7 +62,8 @@ contract SecureTreasury is Ownable, ReentrancyGuardTransient {
     }
 
     /// @notice Fund the treasury. Owner only.
-    function fund() external payable onlyOwner {  // FIX 3: was unguarded
+    function fund() external payable onlyOwner {
+        // FIX 3: was unguarded
         require(msg.value > 0, "SecureTreasury: zero fund");
         emit Funded(msg.sender, msg.value);
     }

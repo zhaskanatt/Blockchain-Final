@@ -10,12 +10,11 @@ import "../src/vault/FeeVault.sol";
 import "../src/mocks/MockERC20.sol";
 
 contract MarketFactoryTest is Test {
-
-    MarketFactory      internal factory;
+    MarketFactory internal factory;
     PredictionMarketV1 internal impl;
-    MockERC20          internal usdc;
-    OutcomeShareToken  internal shareToken;
-    FeeVault           internal vault;
+    MockERC20 internal usdc;
+    OutcomeShareToken internal shareToken;
+    FeeVault internal vault;
 
     address internal owner = makeAddr("owner");
     address internal alice = makeAddr("alice");
@@ -35,13 +34,7 @@ contract MarketFactoryTest is Test {
         impl = new PredictionMarketV1();
 
         vm.prank(owner);
-        factory = new MarketFactory(
-            address(impl),
-            address(usdc),
-            address(shareToken),
-            address(vault),
-            owner
-        );
+        factory = new MarketFactory(address(impl), address(usdc), address(shareToken), address(vault), owner);
     }
 
     // ── Unit: construction ────────────────────────────────────────────────────
@@ -172,7 +165,7 @@ contract MarketFactoryTest is Test {
 
     function test_createAndCreate2_addressesDiffer() public {
         vm.prank(owner);
-        address mktCreate  = factory.deployWithCreate(owner);
+        address mktCreate = factory.deployWithCreate(owner);
         vm.prank(owner);
         address mktCreate2 = factory.deployWithCreate2(SALT_A, owner);
         assertNotEq(mktCreate, mktCreate2);

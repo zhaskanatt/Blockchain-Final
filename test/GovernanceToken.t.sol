@@ -9,10 +9,10 @@ contract GovernanceTokenTest is Test {
 
     address internal owner = makeAddr("owner");
     address internal alice = makeAddr("alice");
-    address internal bob   = makeAddr("bob");
+    address internal bob = makeAddr("bob");
 
     uint256 internal constant INITIAL_SUPPLY = 10_000_000e18;
-    uint256 internal constant MAX_SUPPLY     = 100_000_000e18;
+    uint256 internal constant MAX_SUPPLY = 100_000_000e18;
 
     function setUp() public {
         vm.prank(owner);
@@ -99,7 +99,10 @@ contract GovernanceTokenTest is Test {
     function test_votingPowerUpdatesOnTransfer() public {
         vm.startPrank(owner);
         token.delegate(owner);
-        token.transfer(alice, 1_000e18);
+        require(
+            token.transfer(alice, 1_000e18),
+            "Transfer failed"
+        );
         vm.stopPrank();
 
         // owner delegated to self; transferring tokens reduces their votes
@@ -127,23 +130,21 @@ contract GovernanceTokenTest is Test {
         vm.prank(owner);
         token.mint(signer, 100e18);
 
-        uint256 value    = 50e18;
+        uint256 value = 50e18;
         uint256 deadline = block.timestamp + 1 hours;
         uint256 nonceBefore = token.nonces(signer);
 
-        bytes32 structHash = keccak256(abi.encode(
-            keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
-            signer,
-            bob,
-            value,
-            nonceBefore,
-            deadline
-        ));
-        bytes32 digest = keccak256(abi.encodePacked(
-            "\x19\x01",
-            token.DOMAIN_SEPARATOR(),
-            structHash
-        ));
+        bytes32 structHash = keccak256(
+            abi.encode(
+                keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                signer,
+                bob,
+                value,
+                nonceBefore,
+                deadline
+            )
+        );
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", token.DOMAIN_SEPARATOR(), structHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
 
         token.permit(signer, bob, value, deadline, v, r, s);
@@ -208,7 +209,10 @@ contract GovernanceTokenTest is Test {
         uint256 supplyBefore = token.totalSupply();
 
         vm.prank(owner);
-        token.transfer(to, amount);
+        require(
+            token.transfer(to, amount),
+            "Transfer failed"
+        );
 
         assertEq(token.totalSupply(), supplyBefore);
     }

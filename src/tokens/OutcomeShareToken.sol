@@ -46,15 +46,12 @@ contract OutcomeShareToken is ERC1155, AccessControl {
     /// @notice Decode a token ID back into (marketId, isNo).
     function decodeId(uint256 tokenId) public pure returns (uint256 marketId, bool isNo) {
         marketId = tokenId >> 1;
-        isNo     = (tokenId & 1) == 1;
+        isNo = (tokenId & 1) == 1;
     }
 
     // ── Market registration ───────────────────────────────────────────────────
 
-    function registerMarket(uint256 marketId, string calldata question)
-        external
-        onlyRole(MINTER_ROLE)
-    {
+    function registerMarket(uint256 marketId, string calldata question) external onlyRole(MINTER_ROLE) {
         if (marketRegistered[marketId]) revert MarketAlreadyRegistered(marketId);
         marketRegistered[marketId] = true;
         _questions[marketId] = question;
@@ -68,45 +65,31 @@ contract OutcomeShareToken is ERC1155, AccessControl {
 
     // ── Minting / burning ─────────────────────────────────────────────────────
 
-    function mint(address to, uint256 id, uint256 amount, bytes calldata data)
-        external
-        onlyRole(MINTER_ROLE)
-    {
+    function mint(address to, uint256 id, uint256 amount, bytes calldata data) external onlyRole(MINTER_ROLE) {
         _mint(to, id, amount, data);
     }
 
-    function mintBatch(
-        address to,
-        uint256[] calldata ids,
-        uint256[] calldata amounts,
-        bytes calldata data
-    ) external onlyRole(MINTER_ROLE) {
-        _mintBatch(to, ids, amounts, data);
-    }
-
-    function burn(address from, uint256 id, uint256 amount)
+    function mintBatch(address to, uint256[] calldata ids, uint256[] calldata amounts, bytes calldata data)
         external
         onlyRole(MINTER_ROLE)
     {
+        _mintBatch(to, ids, amounts, data);
+    }
+
+    function burn(address from, uint256 id, uint256 amount) external onlyRole(MINTER_ROLE) {
         _burn(from, id, amount);
     }
 
-    function burnBatch(
-        address from,
-        uint256[] calldata ids,
-        uint256[] calldata amounts
-    ) external onlyRole(MINTER_ROLE) {
+    function burnBatch(address from, uint256[] calldata ids, uint256[] calldata amounts)
+        external
+        onlyRole(MINTER_ROLE)
+    {
         _burnBatch(from, ids, amounts);
     }
 
     // ── ERC-165 ───────────────────────────────────────────────────────────────
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC1155, AccessControl)
-        returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view override(ERC1155, AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

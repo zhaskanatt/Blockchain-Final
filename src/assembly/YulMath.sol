@@ -16,7 +16,6 @@ pragma solidity ^0.8.24;
 /// wrappers on intermediate values that cannot overflow given the invariants
 /// enforced by the caller (reserves < 2^112, amountIn < 2^112).
 library YulMath {
-
     // ─── Yul implementations ──────────────────────────────────────────────────
 
     /// @notice CPMM output quote with 0.3 % fee — Yul version.
@@ -24,20 +23,20 @@ library YulMath {
     /// @param reserveIn  Pool reserve of the input token (≤ 2^112).
     /// @param reserveOut Pool reserve of the output token (≤ 2^112).
     /// @return amountOut Tokens the trader receives.
-    function getAmountOut_Yul(
-        uint256 amountIn,
-        uint256 reserveIn,
-        uint256 reserveOut
-    ) internal pure returns (uint256 amountOut) {
+    function getAmountOut_Yul(uint256 amountIn, uint256 reserveIn, uint256 reserveOut)
+        internal
+        pure
+        returns (uint256 amountOut)
+    {
         assembly ("memory-safe") {
             // Guard: revert if any input is zero
             if or(iszero(amountIn), or(iszero(reserveIn), iszero(reserveOut))) {
                 // revert with Error("YulMath: ZERO_INPUT")
                 let ptr := mload(0x40)
-                mstore(ptr,        0x08c379a000000000000000000000000000000000000000000000000000000000)
-                mstore(add(ptr,4), 0x0000000000000000000000000000000000000000000000000000000000000020)
-                mstore(add(ptr,36),0x0000000000000000000000000000000000000000000000000000000000000013)
-                mstore(add(ptr,68),"YulMath: ZERO_INPUT\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")
+                mstore(ptr, 0x08c379a000000000000000000000000000000000000000000000000000000000)
+                mstore(add(ptr, 4), 0x0000000000000000000000000000000000000000000000000000000000000020)
+                mstore(add(ptr, 36), 0x0000000000000000000000000000000000000000000000000000000000000013)
+                mstore(add(ptr, 68), "YulMath: ZERO_INPUT\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")
                 revert(ptr, 100)
             }
 
@@ -75,15 +74,15 @@ library YulMath {
     // ─── Pure-Solidity mirrors (benchmark reference) ───────────────────────
 
     /// @notice CPMM output quote with 0.3 % fee — Solidity version.
-    function getAmountOut_Solidity(
-        uint256 amountIn,
-        uint256 reserveIn,
-        uint256 reserveOut
-    ) internal pure returns (uint256 amountOut) {
+    function getAmountOut_Solidity(uint256 amountIn, uint256 reserveIn, uint256 reserveOut)
+        internal
+        pure
+        returns (uint256 amountOut)
+    {
         require(amountIn > 0 && reserveIn > 0 && reserveOut > 0, "YulMath: ZERO_INPUT");
         uint256 amountInWithFee = amountIn * 997;
-        uint256 numerator       = amountInWithFee * reserveOut;
-        uint256 denominator     = reserveIn * 1000 + amountInWithFee;
+        uint256 numerator = amountInWithFee * reserveOut;
+        uint256 denominator = reserveIn * 1000 + amountInWithFee;
         amountOut = numerator / denominator;
     }
 

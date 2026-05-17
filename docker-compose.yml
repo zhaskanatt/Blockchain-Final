@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_PASSWORD: let-me-in
+      POSTGRES_USER: graph-node
+      POSTGRES_DB: graph-node
+
+  ipfs:
+    image: ipfs/kubo
+
+  graph-node:
+    image: graphprotocol/graph-node
+    ports:
+      - '8000:8000'
+      - '8020:8020'
+    depends_on:
+      - postgres
+      - ipfs
+    environment:
+      postgres_host: postgres
+      postgres_user: graph-node
+      postgres_pass: let-me-in
+      postgres_db: graph-node
+      ipfs: 'ipfs:5001'
+      ethereum: 'base-sepolia:http://host.docker.internal:8545'
