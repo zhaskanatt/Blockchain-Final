@@ -29,19 +29,17 @@ import "../vault/FeeVault.sol";
 ///
 /// Storage layout (append-only — V2 must only ADD slots below)
 /// ─────────────────────────────────────────────────────────────
-/// slot 0  : _initialized / _initializing   (OZ Initializable)
-/// slot 1  : _owner                          (OwnableUpgradeable)
-/// slot 2  : collateral                      (IERC20)
-/// slot 3  : shareToken                      (OutcomeShareToken)
-/// slot 4  : feeVault                        (FeeVault)
-/// slot 5  : nextMarketId                    (uint256)
-/// slot 6  : markets                         (mapping)
-/// slot 7  : lpBalances                      (mapping)
+/// OZ v5 uses ERC-7201 namespaced storage for OwnableUpgradeable / Initializable,
+/// so those internals do NOT occupy sequential slots. Our own state starts at slot 0:
+///   slot 0  : collateral    (IERC20)
+///   slot 1  : shareToken    (OutcomeShareToken)
+///   slot 2  : feeVault      (FeeVault)
+///   slot 3  : nextMarketId  (uint256)
+///   slot 4  : markets       (mapping)
+///   slot 5  : lpBalances    (mapping)
 ///
-/// Note: ReentrancyGuardTransient uses transient storage (EIP-1153),
-///       which does NOT occupy a persistent storage slot.
-///
-/// V2 additions start at slot 8.
+/// ReentrancyGuardTransient uses transient storage (EIP-1153) — no persistent slot.
+/// V2 additions start at slot 6.
 
 contract PredictionMarketV1 is
     UUPSUpgradeable,
@@ -231,7 +229,17 @@ contract PredictionMarketV1 is
         bool    buyYes,
         uint256 amountIn,
         uint256 minAmountOut
-    ) external nonReentrant returns (uint256 amountOut) {
+    ) external virtual nonReentrant returns (uint256 amountOut) {
+        return _swap(marketId, buyYes, amountIn, minAmountOut);
+    }
+
+    /// @dev Internal swap logic shared between V1 and V2.
+    function _swap(
+        uint256 marketId,
+        bool    buyYes,
+        uint256 amountIn,
+        uint256 minAmountOut
+    ) internal returns (uint256 amountOut) {
         if (amountIn == 0) revert ZeroAmount();
         Market storage mkt = _requireOpen(marketId);
 
@@ -247,9 +255,6 @@ contract PredictionMarketV1 is
         }
 
         // CPMM quote using Yul hot-path
-        // The AMM models: collateral in → outcome shares out
-        // reserveIn  = opposite-outcome reserve (constrains price)
-        // reserveOut = chosen-outcome reserve
         uint256 reserveIn;
         uint256 reserveOut;
         if (buyYes) {
@@ -267,7 +272,7 @@ contract PredictionMarketV1 is
 
         // Update reserves
         if (buyYes) {
-            mkt.noReserve  += amountNet; // collateral-equivalent enters NO side
+            mkt.noReserve  += amountNet;
             mkt.yesReserve -= amountOut;
         } else {
             mkt.yesReserve += amountNet;
